@@ -2,10 +2,11 @@
 pragma solidity ^0.8.0;
 
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {FEE_PERCENTAGE} from "./Constant.sol";
 
-contract KSeaNFTMarketplace is ReentrancyGuard {
+contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
     /*//////////////////////////////////////////////////////////////
                                  ERROR
     //////////////////////////////////////////////////////////////*/
@@ -33,6 +34,7 @@ contract KSeaNFTMarketplace is ReentrancyGuard {
     uint256 public feePercentage;
     uint256 private _tokenCounter;
     uint256 private _itemSold;
+    uint256 private _pendingWithdrawals;
 
     mapping(uint256 => marketItem) private _idToMarketItem;
 
@@ -46,7 +48,8 @@ contract KSeaNFTMarketplace is ReentrancyGuard {
         address indexed nftContract,
         address payable seller,
         address payable owner,
-        uint256 price
+        uint256 price,
+        bool isSold
     );
 
     /*//////////////////////////////////////////////////////////////
@@ -91,10 +94,6 @@ contract KSeaNFTMarketplace is ReentrancyGuard {
     ) external payable nonReentrant {
         // Validate inputs
         require(_price > 0, "Price must be greater than 0");
-        require(
-            msg.value == listingPrice,
-            "Price must be equal to listing price"
-        );
         IERC721 nft = IERC721(_nftContract);
 
         // Validate ownership
@@ -110,6 +109,10 @@ contract KSeaNFTMarketplace is ReentrancyGuard {
             "Marketplace not approved"
         );
 
+        require(msg.value == listingPrice, "Must pay listing fee");
+
+        _pendingWithdrawals += msg.value;
+
         // Transfer NFT to marketplace
         _tokenCounter++;
         _idToMarketItem[_tokenCounter] = marketItem({
@@ -123,8 +126,6 @@ contract KSeaNFTMarketplace is ReentrancyGuard {
         });
 
         nft.safeTransferFrom(msg.sender, address(this), _tokenId);
-        (bool success, ) = payable(_owner).call{value: listingPrice}("");
-        require(success, "Transfer failed");
 
         emit MarketItemCreated(
             _tokenCounter,
@@ -132,8 +133,18 @@ contract KSeaNFTMarketplace is ReentrancyGuard {
             _nftContract,
             payable(msg.sender),
             payable(address(this)),
-            _price
+            _price,
+            false
         );
+    }
+
+    function onERC721Received(
+        address operator,
+        address from,
+        uint256 tokenId,
+        bytes calldata data
+    ) external pure override returns (bytes4) {
+        return IERC721Receiver.onERC721Received.selector;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -185,5 +196,13 @@ contract KSeaNFTMarketplace is ReentrancyGuard {
 
     function getOwner() public view returns (address) {
         return _owner;
+    }
+
+    function getPendingWithdrawals() public view returns (uint256) {
+        return _pendingWithdrawals;
+    }
+
+    function getTokenCounter() public view returns (uint256) {
+        return _tokenCounter;
     }
 }

@@ -3,12 +3,30 @@ pragma solidity ^0.8.0;
 
 import {Test, console} from "@forge/src/Test.sol";
 import {KSeaNFTMarketplace} from "../../src/KSeaNFTMarketplace.sol";
+import {KSeaNFT} from "../../src/KSeaNFT.sol";
 import {LISTING_PRICE, FEE_PERCENTAGE} from "../../src/Constant.sol";
 
 contract KSeaNFTMarketplaceTest is Test {
     KSeaNFTMarketplace kSeaNFTMarketplace;
+    KSeaNFT kSeaNFT;
     address private owner = makeAddr("owner");
     address private user = makeAddr("user");
+    address private user2 = makeAddr("user2");
+    uint256 private initialBalance = 10 ether;
+    string private constant TOKEN_URI =
+        "ipfs://bafybeifiphugocn3g6jsczy2xgxbbik7rshonw54j4kxnuvdfsokgxxyum";
+    string private constant TOKEN_URI_2 =
+        "ipfs://QmPp9Nntg9ogWzyat42kt6LJnniArk3EhPrZyMcbj4dmwQ";
+
+    event MarketItemCreated(
+        uint256 indexed itemId,
+        uint256 indexed tokenId,
+        address indexed nftContract,
+        address payable seller,
+        address payable owner,
+        uint256 price,
+        bool isSold
+    );
 
     function setUp() public {
         vm.prank(owner);
@@ -16,6 +34,9 @@ contract KSeaNFTMarketplaceTest is Test {
             LISTING_PRICE,
             FEE_PERCENTAGE
         );
+        vm.deal(user, initialBalance);
+        vm.deal(owner, initialBalance);
+        vm.deal(user2, initialBalance);
     }
 
     function testMarketplaceSetUp() public view {
@@ -39,5 +60,67 @@ contract KSeaNFTMarketplaceTest is Test {
 
         assertFalse(kSeaNFTMarketplace.getListingPrice() == LISTING_PRICE);
         assertFalse(kSeaNFTMarketplace.getFeePercentage() == FEE_PERCENTAGE);
+    }
+
+    function testMarketplaceCreateMarketItem() public {
+        kSeaNFT = new KSeaNFT();
+        vm.startPrank(user);
+
+        //Mint NFT 1
+        kSeaNFT.createToken(TOKEN_URI);
+        console.log("NFT Contract Address:", address(kSeaNFT));
+        console.log("Token URI:", kSeaNFT.tokenURI(1));
+        kSeaNFT.approve(address(kSeaNFTMarketplace), 1);
+
+        //Create and List on Marketplace
+        vm.expectEmit();
+        emit MarketItemCreated(
+            1,
+            1,
+            address(kSeaNFT),
+            payable(user),
+            payable(address(kSeaNFTMarketplace)),
+            0.1 ether,
+            false
+        );
+        kSeaNFTMarketplace.createMarketItems{value: LISTING_PRICE}(
+            address(kSeaNFT),
+            1,
+            0.1 ether
+        );
+        vm.stopPrank();
+
+        vm.startPrank(user2);
+
+        //Mint NFT 2
+        kSeaNFT.createToken(TOKEN_URI_2);
+        console.log("NFT Contract Address:", address(kSeaNFT));
+        console.log("Token URI:", kSeaNFT.tokenURI(2));
+        kSeaNFT.approve(address(kSeaNFTMarketplace), 2);
+
+        //Create and List on Marketplace
+        kSeaNFTMarketplace.createMarketItems{value: LISTING_PRICE}(
+            address(kSeaNFT),
+            2,
+            1 ether
+        );
+        vm.stopPrank();
+
+        //Assertions
+        KSeaNFTMarketplace.marketItem[] memory items = kSeaNFTMarketplace
+            .getAllNfts();
+        assertEq(items.length, 2);
+
+        vm.prank(user);
+        KSeaNFTMarketplace.marketItem[] memory userItems = kSeaNFTMarketplace
+            .getMyNfts();
+        vm.prank(user2);
+        KSeaNFTMarketplace.marketItem[] memory userItems2 = kSeaNFTMarketplace
+            .getMyNfts();
+
+        assertEq(kSeaNFTMarketplace.getTokenCounter(), 2);
+
+        // Check pending withdrawals
+        assertEq(kSeaNFTMarketplace.getPendingWithdrawals(), 2 * LISTING_PRICE);
     }
 }
