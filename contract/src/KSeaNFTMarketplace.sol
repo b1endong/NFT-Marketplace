@@ -29,8 +29,8 @@ contract KSeaNFTMarketplace is ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
 
     address public immutable _owner;
-    uint256 public listingPrice = 0.001 ether;
-    uint256 public feePercentage = 2;
+    uint256 public listingPrice;
+    uint256 public feePercentage;
     uint256 private _tokenCounter;
     uint256 private _itemSold;
 
@@ -62,25 +62,27 @@ contract KSeaNFTMarketplace is ReentrancyGuard {
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor() {
+    constructor(uint256 _listingPrice, uint256 _feePercentage) {
         _owner = payable(msg.sender);
+        listingPrice = _listingPrice;
+        feePercentage = _feePercentage;
     }
 
-    function updateListingPrice(uint256 newListingPrice) private onlyOwner {
+    /*//////////////////////////////////////////////////////////////
+                                 ADMIN
+    //////////////////////////////////////////////////////////////*/
+
+    function updateListingPrice(uint256 newListingPrice) public onlyOwner {
         listingPrice = newListingPrice;
     }
 
-    function getListingPrice() public view returns (uint256) {
-        return listingPrice;
-    }
-
-    function updateFeePercentage(uint256 newFeePercentage) private onlyOwner {
+    function updateFeePercentage(uint256 newFeePercentage) public onlyOwner {
         feePercentage = newFeePercentage;
     }
 
-    function getFeePercentage() public view returns (uint256) {
-        return feePercentage;
-    }
+    /*//////////////////////////////////////////////////////////////
+                            ACTION FUNCTION
+    //////////////////////////////////////////////////////////////*/
 
     function createMarketItems(
         address _nftContract,
@@ -134,6 +136,10 @@ contract KSeaNFTMarketplace is ReentrancyGuard {
         );
     }
 
+    /*//////////////////////////////////////////////////////////////
+                            GETTER FUNCTION
+    //////////////////////////////////////////////////////////////*/
+
     function getAllNfts() public view returns (marketItem[] memory) {
         marketItem[] memory items = new marketItem[](_tokenCounter);
         for (uint256 i = 1; i <= _tokenCounter; i++) {
@@ -167,5 +173,17 @@ contract KSeaNFTMarketplace is ReentrancyGuard {
             }
         }
         return items;
+    }
+
+    function getListingPrice() public view returns (uint256) {
+        return listingPrice;
+    }
+
+    function getFeePercentage() public view returns (uint256) {
+        return feePercentage;
+    }
+
+    function getOwner() public view returns (address) {
+        return _owner;
     }
 }
