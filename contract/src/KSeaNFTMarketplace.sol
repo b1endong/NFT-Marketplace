@@ -62,6 +62,17 @@ contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
         bool isCancel
     );
 
+    event MarketItemSale(
+        uint256 indexed itemId,
+        uint256 indexed tokenId,
+        address indexed nftContract,
+        address payable seller,
+        address payable owner,
+        uint256 price,
+        uint256 fee,
+        bool isSold
+    );
+
     /*//////////////////////////////////////////////////////////////
                                MODIFIERS
     //////////////////////////////////////////////////////////////*/
@@ -180,6 +191,45 @@ contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
             item.seller,
             item.owner,
             item.isCancel
+        );
+    }
+
+    function buyMarketItem(uint256 itemId) public payable nonReentrant {
+        marketItem storage item = _idToMarketItem[itemId];
+        //Check error
+        require(item.seller != msg.sender, "Owner cannot buy their own item");
+        require(!item.isSold, "Item already sold");
+        require(!item.isCancel, "Item is cancelled");
+        require(item.owner == address(this), "Item not listed");
+
+        //Calculate fee
+        require(msg.value == item.price, "Please submit the asking price");
+        uint256 fee = (msg.value * feePercentage) / 100;
+        uint256 sellerProceeds = msg.value - fee;
+        _pendingWithdrawals += fee;
+
+        //Update item
+        item.owner = payable(msg.sender);
+        item.isSold = true;
+        _itemSold++;
+
+        //Transfer NFT to buyer
+        IERC721 nft = IERC721(item.nftContract);
+        nft.safeTransferFrom(address(this), msg.sender, item.tokenId);
+
+        //Pay the seller
+        (bool success, ) = item.seller.call{value: sellerProceeds}("");
+        require(success, "Transfer to seller failed");
+
+        emit MarketItemSale(
+            itemId,
+            item.tokenId,
+            item.nftContract,
+            item.seller,
+            item.owner,
+            item.price,
+            fee,
+            item.isSold
         );
     }
 
