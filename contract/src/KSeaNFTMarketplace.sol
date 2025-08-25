@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {FEE_PERCENTAGE} from "./Constant.sol";
 
 contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
     /*//////////////////////////////////////////////////////////////
@@ -23,6 +22,7 @@ contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
         address payable owner;
         uint256 price;
         bool isSold;
+        bool isCancel;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -49,7 +49,17 @@ contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
         address payable seller,
         address payable owner,
         uint256 price,
-        bool isSold
+        bool isSold,
+        bool isCancel
+    );
+
+    event CancelListingMarketItem(
+        uint256 indexed itemId,
+        uint256 indexed tokenId,
+        address indexed nftContract,
+        address payable seller,
+        address payable owner,
+        bool isCancel
     );
 
     /*//////////////////////////////////////////////////////////////
@@ -122,7 +132,8 @@ contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
             seller: payable(msg.sender),
             owner: payable(address(this)),
             price: _price,
-            isSold: false
+            isSold: false,
+            isCancel: false
         });
 
         nft.safeTransferFrom(msg.sender, address(this), _tokenId);
@@ -134,6 +145,7 @@ contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
             payable(msg.sender),
             payable(address(this)),
             _price,
+            false,
             false
         );
     }
@@ -145,6 +157,30 @@ contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
         bytes calldata data
     ) external pure override returns (bytes4) {
         return IERC721Receiver.onERC721Received.selector;
+    }
+
+    function cancelListingMarketItem(uint256 itemId) public nonReentrant {
+        marketItem storage item = _idToMarketItem[itemId];
+        //Check error
+        require(item.seller == msg.sender, "Not the owner");
+        require(!item.isSold, "Item already sold");
+        require(item.owner == address(this), "Item not listed");
+        IERC721 nft = IERC721(item.nftContract);
+
+        //Cancel listing
+        nft.safeTransferFrom(address(this), item.seller, item.tokenId);
+        item.owner = payable(item.seller);
+        item.seller = payable(address(0));
+        item.isCancel = true;
+
+        emit CancelListingMarketItem(
+            itemId,
+            item.tokenId,
+            item.nftContract,
+            item.seller,
+            item.owner,
+            item.isCancel
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -178,6 +214,35 @@ contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
             if (
                 _idToMarketItem[i].owner == msg.sender ||
                 _idToMarketItem[i].seller == msg.sender
+            ) {
+                items[currentIndex] = _idToMarketItem[i];
+                currentIndex += 1;
+            }
+        }
+        return items;
+    }
+
+    function getUserNft(
+        address user
+    ) public view returns (marketItem[] memory) {
+        uint256 totalItemCount = _tokenCounter;
+        uint256 itemCount = 0;
+        uint256 currentIndex = 0;
+
+        for (uint256 i = 1; i <= totalItemCount; i++) {
+            if (
+                _idToMarketItem[i].owner == user ||
+                _idToMarketItem[i].seller == user
+            ) {
+                itemCount += 1;
+            }
+        }
+
+        marketItem[] memory items = new marketItem[](itemCount);
+        for (uint256 i = 1; i <= totalItemCount; i++) {
+            if (
+                _idToMarketItem[i].owner == user ||
+                _idToMarketItem[i].seller == user
             ) {
                 items[currentIndex] = _idToMarketItem[i];
                 currentIndex += 1;

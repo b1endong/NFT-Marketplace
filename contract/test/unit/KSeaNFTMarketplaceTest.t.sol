@@ -17,6 +17,8 @@ contract KSeaNFTMarketplaceTest is Test {
         "ipfs://bafybeifiphugocn3g6jsczy2xgxbbik7rshonw54j4kxnuvdfsokgxxyum";
     string private constant TOKEN_URI_2 =
         "ipfs://QmPp9Nntg9ogWzyat42kt6LJnniArk3EhPrZyMcbj4dmwQ";
+    string private constant TOKEN_URI_3 =
+        "ipfs://bafybeig2gf5a5pyhsgz3xiphh57yje66oiw5nmqzyiw3dws2qvpnn5guiu";
 
     event MarketItemCreated(
         uint256 indexed itemId,
@@ -27,6 +29,43 @@ contract KSeaNFTMarketplaceTest is Test {
         uint256 price,
         bool isSold
     );
+
+    event CancelListingMarketItem(
+        uint256 indexed itemId,
+        uint256 indexed tokenId,
+        address indexed nftContract,
+        address payable seller,
+        address payable owner,
+        bool isCancel
+    );
+
+    modifier listNFTs() {
+        kSeaNFT = new KSeaNFT();
+        //User 1
+        vm.startPrank(user);
+        kSeaNFT.createToken(TOKEN_URI);
+        kSeaNFT.approve(address(kSeaNFTMarketplace), 1);
+
+        kSeaNFTMarketplace.createMarketItems{value: LISTING_PRICE}(
+            address(kSeaNFT),
+            1,
+            0.1 ether
+        );
+        vm.stopPrank();
+
+        //User 2
+        vm.startPrank(user2);
+        kSeaNFT.createToken(TOKEN_URI_2);
+        kSeaNFT.approve(address(kSeaNFTMarketplace), 2);
+
+        kSeaNFTMarketplace.createMarketItems{value: LISTING_PRICE}(
+            address(kSeaNFT),
+            2,
+            1 ether
+        );
+        vm.stopPrank();
+        _;
+    }
 
     function setUp() public {
         vm.prank(owner);
@@ -122,5 +161,49 @@ contract KSeaNFTMarketplaceTest is Test {
 
         // Check pending withdrawals
         assertEq(kSeaNFTMarketplace.getPendingWithdrawals(), 2 * LISTING_PRICE);
+        assertEq(user.balance, initialBalance - LISTING_PRICE);
+        assertEq(user2.balance, initialBalance - LISTING_PRICE);
+    }
+
+    function testCancelListingMarketItem() public listNFTs {
+        vm.startPrank(user);
+        kSeaNFT.createToken(TOKEN_URI_3);
+        kSeaNFT.approve(address(kSeaNFTMarketplace), 3);
+
+        kSeaNFTMarketplace.createMarketItems{value: LISTING_PRICE}(
+            address(kSeaNFT),
+            3,
+            0.4 ether
+        );
+        vm.stopPrank();
+
+        //Before Cancel
+        assertEq(kSeaNFT.balanceOf(user2), 0);
+        KSeaNFTMarketplace.marketItem[] memory itemsBefore = kSeaNFTMarketplace
+            .getAllNfts();
+        vm.prank(user2);
+        KSeaNFTMarketplace.marketItem[]
+            memory userItemsBefore = kSeaNFTMarketplace.getMyNfts();
+        //Cancel
+        vm.startPrank(user2);
+        vm.expectEmit();
+        emit CancelListingMarketItem(
+            2,
+            2,
+            address(kSeaNFT),
+            payable(address(0)),
+            payable(user2),
+            true
+        );
+
+        kSeaNFTMarketplace.cancelListingMarketItem(2);
+        vm.stopPrank();
+        //After Cancel
+        assertEq(kSeaNFT.balanceOf(user2), 1);
+        KSeaNFTMarketplace.marketItem[] memory itemsAfter = kSeaNFTMarketplace
+            .getAllNfts();
+        vm.prank(user2);
+        KSeaNFTMarketplace.marketItem[]
+            memory userItemsAfter = kSeaNFTMarketplace.getMyNfts();
     }
 }
