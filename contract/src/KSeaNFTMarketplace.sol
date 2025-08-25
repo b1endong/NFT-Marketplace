@@ -73,12 +73,19 @@ contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
         bool isSold
     );
 
+    event Withdrawals(address indexed to, uint256 amount);
+
     /*//////////////////////////////////////////////////////////////
                                MODIFIERS
     //////////////////////////////////////////////////////////////*/
 
     modifier onlyOwner() {
         require(msg.sender == _owner, "Only Owner can call this function");
+        _;
+    }
+
+    modifier itemExists(uint256 itemId) {
+        require(itemId > 0 && itemId <= _tokenCounter, "Item does not exist");
         _;
     }
 
@@ -102,6 +109,14 @@ contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
 
     function updateFeePercentage(uint256 newFeePercentage) public onlyOwner {
         feePercentage = newFeePercentage;
+    }
+
+    function withdraw() public onlyOwner nonReentrant {
+        uint256 amount = _pendingWithdrawals;
+        _pendingWithdrawals = 0;
+        (bool success, ) = _owner.call{value: amount}("");
+        require(success, "Transfer failed");
+        emit Withdrawals(_owner, amount);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -170,7 +185,9 @@ contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
         return IERC721Receiver.onERC721Received.selector;
     }
 
-    function cancelListingMarketItem(uint256 itemId) public nonReentrant {
+    function cancelListingMarketItem(
+        uint256 itemId
+    ) public nonReentrant itemExists(itemId) {
         marketItem storage item = _idToMarketItem[itemId];
         //Check error
         require(item.seller == msg.sender, "Not the owner");
@@ -181,7 +198,6 @@ contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
         //Cancel listing
         nft.safeTransferFrom(address(this), item.seller, item.tokenId);
         item.owner = payable(item.seller);
-        item.seller = payable(address(0));
         item.isCancel = true;
 
         emit CancelListingMarketItem(
@@ -192,9 +208,12 @@ contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
             item.owner,
             item.isCancel
         );
+        item.seller = payable(address(0));
     }
 
-    function buyMarketItem(uint256 itemId) public payable nonReentrant {
+    function buyMarketItem(
+        uint256 itemId
+    ) public payable nonReentrant itemExists(itemId) {
         marketItem storage item = _idToMarketItem[itemId];
         //Check error
         require(item.seller != msg.sender, "Owner cannot buy their own item");
@@ -208,18 +227,19 @@ contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
         uint256 sellerProceeds = msg.value - fee;
         _pendingWithdrawals += fee;
 
+        //Pay the seller
+        (bool success, ) = item.seller.call{value: sellerProceeds}("");
+        require(success, "Transfer to seller failed");
+
         //Update item
         item.owner = payable(msg.sender);
+        item.seller = payable(address(0));
         item.isSold = true;
         _itemSold++;
 
         //Transfer NFT to buyer
         IERC721 nft = IERC721(item.nftContract);
         nft.safeTransferFrom(address(this), msg.sender, item.tokenId);
-
-        //Pay the seller
-        (bool success, ) = item.seller.call{value: sellerProceeds}("");
-        require(success, "Transfer to seller failed");
 
         emit MarketItemSale(
             itemId,
@@ -241,6 +261,35 @@ contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
         marketItem[] memory items = new marketItem[](_tokenCounter);
         for (uint256 i = 1; i <= _tokenCounter; i++) {
             items[i - 1] = _idToMarketItem[i];
+        }
+        return items;
+    }
+
+    function getAllActiveNfts() public view returns (marketItem[] memory) {
+        uint256 totalItemCount = _tokenCounter;
+        uint256 itemCount = 0;
+        uint256 currentIndex = 0;
+
+        for (uint256 i = 1; i <= totalItemCount; i++) {
+            if (
+                _idToMarketItem[i].owner == address(this) &&
+                !_idToMarketItem[i].isSold &&
+                !_idToMarketItem[i].isCancel
+            ) {
+                itemCount += 1;
+            }
+        }
+
+        marketItem[] memory items = new marketItem[](itemCount);
+        for (uint256 i = 1; i <= totalItemCount; i++) {
+            if (
+                _idToMarketItem[i].owner == address(this) &&
+                !_idToMarketItem[i].isSold &&
+                !_idToMarketItem[i].isCancel
+            ) {
+                items[currentIndex] = _idToMarketItem[i];
+                currentIndex += 1;
+            }
         }
         return items;
     }

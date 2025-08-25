@@ -27,7 +27,8 @@ contract KSeaNFTMarketplaceTest is Test {
         address payable seller,
         address payable owner,
         uint256 price,
-        bool isSold
+        bool isSold,
+        bool isCancel
     );
 
     event CancelListingMarketItem(
@@ -38,6 +39,19 @@ contract KSeaNFTMarketplaceTest is Test {
         address payable owner,
         bool isCancel
     );
+
+    event MarketItemSale(
+        uint256 indexed itemId,
+        uint256 indexed tokenId,
+        address indexed nftContract,
+        address payable seller,
+        address payable owner,
+        uint256 price,
+        uint256 fee,
+        bool isSold
+    );
+
+    event Withdrawals(address indexed to, uint256 amount);
 
     modifier listNFTs() {
         kSeaNFT = new KSeaNFT();
@@ -84,7 +98,7 @@ contract KSeaNFTMarketplaceTest is Test {
         assertEq(kSeaNFTMarketplace.getOwner(), owner);
     }
 
-    function testAdminFunctions() public {
+    function testAdminFunctions() public listNFTs {
         vm.startPrank(user);
         vm.expectRevert("Only Owner can call this function");
         kSeaNFTMarketplace.updateListingPrice(0.002 ether);
@@ -99,6 +113,19 @@ contract KSeaNFTMarketplaceTest is Test {
 
         assertFalse(kSeaNFTMarketplace.getListingPrice() == LISTING_PRICE);
         assertFalse(kSeaNFTMarketplace.getFeePercentage() == FEE_PERCENTAGE);
+
+        console.log(kSeaNFTMarketplace.getPendingWithdrawals());
+        vm.expectRevert();
+        vm.prank(user);
+        kSeaNFTMarketplace.withdraw();
+        uint256 amount = kSeaNFTMarketplace.getPendingWithdrawals();
+        vm.expectEmit();
+        emit Withdrawals(owner, amount);
+        vm.prank(owner);
+        kSeaNFTMarketplace.withdraw();
+        assertEq(kSeaNFTMarketplace.getPendingWithdrawals(), 0);
+        assertEq(owner.balance, initialBalance + amount);
+        console.log("Owner Balance:", owner.balance);
     }
 
     function testMarketplaceCreateMarketItem() public {
@@ -120,6 +147,7 @@ contract KSeaNFTMarketplaceTest is Test {
             payable(user),
             payable(address(kSeaNFTMarketplace)),
             0.1 ether,
+            false,
             false
         );
         kSeaNFTMarketplace.createMarketItems{value: LISTING_PRICE}(
@@ -191,7 +219,7 @@ contract KSeaNFTMarketplaceTest is Test {
             2,
             2,
             address(kSeaNFT),
-            payable(address(0)),
+            payable(user2),
             payable(user2),
             true
         );
@@ -205,5 +233,44 @@ contract KSeaNFTMarketplaceTest is Test {
         vm.prank(user2);
         KSeaNFTMarketplace.marketItem[]
             memory userItemsAfter = kSeaNFTMarketplace.getMyNfts();
+    }
+
+    function testBuyMarketItem() public listNFTs {
+        KSeaNFTMarketplace.marketItem[] memory items = kSeaNFTMarketplace
+            .getAllNfts();
+
+        uint256 user2BeforeBalance = user2.balance;
+        uint256 user1BeforeBalance = user.balance;
+        vm.startPrank(user2);
+        vm.expectEmit();
+        emit MarketItemSale(
+            items[0].itemId,
+            items[0].tokenId,
+            items[0].nftContract,
+            payable(address(0)),
+            payable(address(user2)),
+            items[0].price,
+            (0.1 ether * FEE_PERCENTAGE) / 100,
+            true
+        );
+        kSeaNFTMarketplace.buyMarketItem{value: 0.1 ether}(1);
+        vm.stopPrank();
+        KSeaNFTMarketplace.marketItem[] memory itemsAfter = kSeaNFTMarketplace
+            .getAllNfts();
+
+        uint256 user2AfterBalance = user2.balance;
+        uint256 user1AfterBalance = user.balance;
+
+        assertEq(user2BeforeBalance - 0.1 ether, user2AfterBalance);
+        assertEq(user1BeforeBalance + 0.098 ether, user1AfterBalance); //After fee
+        assertEq(
+            kSeaNFTMarketplace.getPendingWithdrawals(),
+            2 * LISTING_PRICE + 0.002 ether
+        );
+
+        assertEq(itemsAfter[0].isSold, true);
+        assertEq(itemsAfter[0].owner, user2);
+        assertEq(itemsAfter[0].seller, address(0));
+        assertEq(kSeaNFT.balanceOf(user2), 1);
     }
 }
