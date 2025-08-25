@@ -9,6 +9,7 @@ contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
     /*//////////////////////////////////////////////////////////////
                                  ERROR
     //////////////////////////////////////////////////////////////*/
+
     error Marketplace__NotOwner();
     error Marketplace__ItemNotFound();
     error Marketplace__TransferFailed();
