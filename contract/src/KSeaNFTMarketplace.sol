@@ -9,6 +9,16 @@ contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
     /*//////////////////////////////////////////////////////////////
                                  ERROR
     //////////////////////////////////////////////////////////////*/
+    error Marketplace__NotOwner();
+    error Marketplace__ItemNotFound();
+    error Marketplace__TransferFailed();
+    error Marketplace__PriceMustBeAboveZero();
+    error Marketplace__NotOwnerOfNft();
+    error Marketplace__NotApprovedForMarketplace();
+    error Marketplace__MustPayListingFee();
+    error Marketplace__ItemAlreadySold();
+    error Marketplace__ItemNotListed();
+    error Marketplace__InvalidSale();
 
     /*//////////////////////////////////////////////////////////////
                             TYPE DECLARATION
@@ -80,12 +90,16 @@ contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
     //////////////////////////////////////////////////////////////*/
 
     modifier onlyOwner() {
-        require(msg.sender == _owner, "Only Owner can call this function");
+        if (msg.sender != _owner) {
+            revert Marketplace__NotOwner();
+        }
         _;
     }
 
     modifier itemExists(uint256 itemId) {
-        require(itemId > 0 && itemId <= _tokenCounter, "Item does not exist");
+        if (itemId <= 0 || itemId > _tokenCounter) {
+            revert Marketplace__ItemNotFound();
+        }
         _;
     }
 
@@ -115,37 +129,43 @@ contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
         uint256 amount = _pendingWithdrawals;
         _pendingWithdrawals = 0;
         (bool success, ) = _owner.call{value: amount}("");
-        require(success, "Transfer failed");
+        if (!success) {
+            revert Marketplace__TransferFailed();
+        }
         emit Withdrawals(_owner, amount);
     }
 
     /*//////////////////////////////////////////////////////////////
-                            ACTION FUNCTION
+                            PUBLIC FUNCTION
     //////////////////////////////////////////////////////////////*/
 
     function createMarketItems(
         address _nftContract,
         uint256 _tokenId,
         uint256 _price
-    ) external payable nonReentrant {
+    ) public payable nonReentrant {
         // Validate inputs
-        require(_price > 0, "Price must be greater than 0");
+        if (_price <= 0) {
+            revert Marketplace__PriceMustBeAboveZero();
+        }
         IERC721 nft = IERC721(_nftContract);
 
         // Validate ownership
-        require(
-            nft.ownerOf(_tokenId) == msg.sender,
-            "Only the owner can create market items"
-        );
+        if (nft.ownerOf(_tokenId) != msg.sender) {
+            revert Marketplace__NotOwnerOfNft();
+        }
 
         // Validate approval
-        require(
-            nft.getApproved(_tokenId) == address(this) ||
-                nft.isApprovedForAll(msg.sender, address(this)),
-            "Marketplace not approved"
-        );
+        if (
+            nft.getApproved(_tokenId) != address(this) &&
+            !nft.isApprovedForAll(msg.sender, address(this))
+        ) {
+            revert Marketplace__NotApprovedForMarketplace();
+        }
 
-        require(msg.value == listingPrice, "Must pay listing fee");
+        if (msg.value != listingPrice) {
+            revert Marketplace__MustPayListingFee();
+        }
 
         _pendingWithdrawals += msg.value;
 
@@ -190,9 +210,15 @@ contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
     ) public nonReentrant itemExists(itemId) {
         marketItem storage item = _idToMarketItem[itemId];
         //Check error
-        require(item.seller == msg.sender, "Not the owner");
-        require(!item.isSold, "Item already sold");
-        require(item.owner == address(this), "Item not listed");
+        if (item.seller != msg.sender) {
+            revert Marketplace__NotOwnerOfNft();
+        }
+        if (item.isSold) {
+            revert Marketplace__ItemAlreadySold();
+        }
+        if (item.owner != address(this)) {
+            revert Marketplace__ItemNotListed();
+        }
         IERC721 nft = IERC721(item.nftContract);
 
         //Cancel listing
@@ -216,10 +242,17 @@ contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
     ) public payable nonReentrant itemExists(itemId) {
         marketItem storage item = _idToMarketItem[itemId];
         //Check error
-        require(item.seller != msg.sender, "Owner cannot buy their own item");
-        require(!item.isSold, "Item already sold");
-        require(!item.isCancel, "Item is cancelled");
-        require(item.owner == address(this), "Item not listed");
+        if (item.seller == msg.sender) {
+            revert Marketplace__InvalidSale();
+        }
+
+        if (item.isSold) {
+            revert Marketplace__ItemAlreadySold();
+        }
+
+        if (item.isCancel || item.owner != address(this)) {
+            revert Marketplace__ItemNotListed();
+        }
 
         //Calculate fee
         require(msg.value == item.price, "Please submit the asking price");
