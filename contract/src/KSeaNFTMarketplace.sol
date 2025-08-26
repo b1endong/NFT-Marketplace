@@ -431,9 +431,17 @@ contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
         return items;
     }
 
-    function getMarketItem(
+    function getActiveMarketItem(
         uint256 itemId
     ) public view itemExists(itemId) returns (marketItem memory) {
+        if (_idToMarketItem[itemId].isSold) {
+            revert Marketplace__ItemAlreadySold();
+        }
+
+        if (_idToMarketItem[itemId].isCancel) {
+            revert Marketplace__ItemNotListed();
+        }
+
         return _idToMarketItem[itemId];
     }
 

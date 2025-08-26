@@ -17,6 +17,7 @@ contract AuctionModular {
     error Auction__NoBidPlaced();
     error Auction__NotHighestBidder();
     error Auction__NotEnded();
+    error Auction__DurationMustBeLessThanMax();
 
     /*//////////////////////////////////////////////////////////////
                             TYPE DECLARATION
@@ -35,6 +36,7 @@ contract AuctionModular {
     //////////////////////////////////////////////////////////////*/
 
     KSeaNFTMarketplace private marketplace;
+    uint256 private maxDurationAuction;
     mapping(uint256 => Auction) public auctions; // itemId => Auction
     mapping(uint256 => mapping(address => uint256)) public bids; // itemId => (bidder => amount) : refund mapping
 
@@ -53,8 +55,9 @@ contract AuctionModular {
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(address _marketplace) {
+    constructor(address _marketplace, uint256 _maxDuration) {
         marketplace = KSeaNFTMarketplace(_marketplace);
+        maxDurationAuction = _maxDuration;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -62,8 +65,12 @@ contract AuctionModular {
     //////////////////////////////////////////////////////////////*/
 
     function createAuction(uint256 itemId, uint256 duration) external {
-        if (marketplace.getMarketItem(itemId).seller != msg.sender) {
+        if (marketplace.getActiveMarketItem(itemId).seller != msg.sender) {
             revert Auction__NotSeller();
+        }
+
+        if (duration > maxDurationAuction) {
+            revert Auction__DurationMustBeLessThanMax();
         }
 
         if (duration <= 0) {
@@ -81,6 +88,8 @@ contract AuctionModular {
             endTime: block.timestamp + duration,
             isActive: true
         });
+
+        emit AuctionCreated(itemId, block.timestamp + duration);
     }
 
     function placeBid(uint256 itemId) external payable {
@@ -142,5 +151,13 @@ contract AuctionModular {
             auction.highestBid,
             address(this)
         );
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            GETTER FUNCTION
+    //////////////////////////////////////////////////////////////*/
+
+    function getMarketplaceAddress() public view returns (address) {
+        return address(marketplace);
     }
 }
