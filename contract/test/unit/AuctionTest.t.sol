@@ -14,6 +14,7 @@ contract AuctionTest is Test {
     uint256 private initialBalance = 10 ether;
     address private user = makeAddr("user");
     address private user2 = makeAddr("user2");
+    address private user3 = makeAddr("user3");
     string private constant TOKEN_URI =
         "ipfs://bafybeifiphugocn3g6jsczy2xgxbbik7rshonw54j4kxnuvdfsokgxxyum";
     string private constant TOKEN_URI_2 =
@@ -60,6 +61,7 @@ contract AuctionTest is Test {
         );
         vm.deal(user, initialBalance);
         vm.deal(user2, initialBalance);
+        vm.deal(user3, initialBalance);
     }
 
     function testSetUp() public view {
@@ -96,5 +98,28 @@ contract AuctionTest is Test {
         assertEq(endTime, block.timestamp + 12 hours);
         assertTrue(isActive);
         emit AuctionCreated(1, block.timestamp + 12 hours);
+    }
+
+    function testPlaceBid() public listMarketItem {
+        vm.prank(user);
+        auction.createAuction(1, 12 hours);
+
+        vm.prank(user2);
+        auction.placeBid{value: 1 ether}(1);
+
+        vm.prank(user3);
+        auction.placeBid{value: 1.5 ether}(1);
+
+        // vm.expectRevert("Seller cannot bid on own auction");
+        // vm.prank(user);
+        // auction.placeBid{value: 2 ether}(1);
+
+        vm.prank(user2);
+        auction.placeBid{value: 2.5 ether}(1);
+
+        assertEq(auction.getAuction(1).highestBid, 2.5 ether);
+        assertEq(auction.getAuction(1).highestBidder, user2);
+        assertEq(auction.getUserRefundableAmount(1, user2), 1 ether);
+        assertEq(auction.getUserRefundableAmount(1, user3), 1.5 ether);
     }
 }

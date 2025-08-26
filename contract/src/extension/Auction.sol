@@ -37,6 +37,7 @@ contract AuctionModular {
 
     KSeaNFTMarketplace private marketplace;
     uint256 private maxDurationAuction;
+    uint256 private auctionCounter;
     mapping(uint256 => Auction) public auctions; // itemId => Auction
     mapping(uint256 => mapping(address => uint256)) public bids; // itemId => (bidder => amount) : refund mapping
 
@@ -88,20 +89,29 @@ contract AuctionModular {
             endTime: block.timestamp + duration,
             isActive: true
         });
+        auctionCounter++;
 
         emit AuctionCreated(itemId, block.timestamp + duration);
     }
 
     function placeBid(uint256 itemId) external payable {
         Auction storage auction = auctions[itemId];
-
         if (!auction.isActive || block.timestamp >= auction.endTime) {
             revert Auction__AuctionNotActive();
+        }
+
+        if (msg.value < marketplace.getActiveMarketItem(itemId).price) {
+            revert Auction__BidNotHighEnough();
         }
 
         if (msg.value <= auction.highestBid) {
             revert Auction__BidNotHighEnough();
         }
+
+        require(
+            msg.sender != marketplace.getActiveMarketItem(itemId).seller,
+            "Seller cannot bid on own auction"
+        );
 
         // Refund the previous highest bidder
         if (auction.highestBidder != address(0)) {
@@ -151,6 +161,7 @@ contract AuctionModular {
             auction.highestBid,
             address(this)
         );
+        auctionCounter--;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -159,5 +170,24 @@ contract AuctionModular {
 
     function getMarketplaceAddress() public view returns (address) {
         return address(marketplace);
+    }
+
+    function getAllAuctions() public view returns (Auction[] memory) {
+        Auction[] memory allAuctions = new Auction[](auctionCounter);
+        for (uint256 i = 0; i < auctionCounter; i++) {
+            allAuctions[i] = auctions[i];
+        }
+        return allAuctions;
+    }
+
+    function getAuction(uint256 itemId) public view returns (Auction memory) {
+        return auctions[itemId];
+    }
+
+    function getUserRefundableAmount(
+        uint256 itemId,
+        address user
+    ) public view returns (uint256) {
+        return bids[itemId][user];
     }
 }
