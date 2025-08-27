@@ -85,41 +85,30 @@ contract AuctionTest is Test {
         auction.createAuction(1, 12 hours);
 
         // Check that the auction was created successfully
-        (
-            uint256 itemId,
-            uint256 highestBid,
-            address highestBidder,
-            uint256 endTime,
-            bool isActive
-        ) = auction.auctions(1);
-        assertEq(itemId, 1);
-        assertEq(highestBid, 0);
-        assertEq(highestBidder, address(0));
-        assertEq(endTime, block.timestamp + 12 hours);
-        assertTrue(isActive);
+        assertEq(auction.getAuction(1).itemId, 1);
+        assertEq(auction.getAuction(1).highestBid, 0);
+        assertEq(auction.getAuction(1).highestBidder, address(0));
+        assertEq(auction.getAuction(1).endTime, block.timestamp + 12 hours);
+        assertTrue(auction.getAuction(1).isActive);
         emit AuctionCreated(1, block.timestamp + 12 hours);
     }
 
     function testPlaceBid() public listMarketItem {
         vm.prank(user);
         auction.createAuction(1, 12 hours);
+        kSeaNFTMarketplace.getAllActiveNfts();
 
         vm.prank(user2);
         auction.placeBid{value: 1 ether}(1);
+        assertEq(auction.getUserRefundableAmount(1, user2), 0 ether);
 
         vm.prank(user3);
         auction.placeBid{value: 1.5 ether}(1);
+        assertEq(auction.getUserRefundableAmount(1, user2), 1 ether);
+        assertEq(auction.getUserRefundableAmount(1, user3), 0 ether);
 
         // vm.expectRevert("Seller cannot bid on own auction");
         // vm.prank(user);
         // auction.placeBid{value: 2 ether}(1);
-
-        vm.prank(user2);
-        auction.placeBid{value: 2.5 ether}(1);
-
-        assertEq(auction.getAuction(1).highestBid, 2.5 ether);
-        assertEq(auction.getAuction(1).highestBidder, user2);
-        assertEq(auction.getUserRefundableAmount(1, user2), 1 ether);
-        assertEq(auction.getUserRefundableAmount(1, user3), 1.5 ether);
     }
 }

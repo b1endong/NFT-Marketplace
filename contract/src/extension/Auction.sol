@@ -38,8 +38,9 @@ contract AuctionModular {
     KSeaNFTMarketplace private marketplace;
     uint256 private maxDurationAuction;
     uint256 private auctionCounter;
-    mapping(uint256 => Auction) public auctions; // itemId => Auction
-    mapping(uint256 => mapping(address => uint256)) public bids; // itemId => (bidder => amount) : refund mapping
+    mapping(uint256 => Auction) private auctions; // itemId => Auction
+    mapping(uint256 => mapping(address => uint256)) private refunds; // itemId => (bidder => amount) : refund mapping
+    mapping(uint256 => mapping(address => uint256)) private bids; // itemId => (bidder => amount) : bid mapping
 
     /*//////////////////////////////////////////////////////////////
                                  EVENT
@@ -113,14 +114,25 @@ contract AuctionModular {
             "Seller cannot bid on own auction"
         );
 
-        // Refund the previous highest bidder
-        if (auction.highestBidder != address(0)) {
-            bids[itemId][auction.highestBidder] += auction.highestBid;
+        if (msg.sender != address(0)) {
+            bids[itemId][msg.sender] += msg.value;
         }
 
-        // Update the auction with the new highest bid
-        auction.highestBid = msg.value;
-        auction.highestBidder = msg.sender;
+        if (bids[itemId][msg.sender] > auction.highestBid) {
+            refunds[itemId][auction.highestBidder] = auction.highestBid;
+            refunds[itemId][msg.sender] = 0;
+            auction.highestBid = bids[itemId][msg.sender];
+            auction.highestBidder = msg.sender;
+        }
+
+        // // // Refund the previous highest bidder
+        // // if (auction.highestBidder != address(0)) {
+        // //     bids[itemId][auction.highestBidder] += auction.highestBid;
+        // // }
+
+        // // Update the auction with the new highest bid
+        // auction.highestBid = msg.value;
+        // auction.highestBidder = msg.sender;
 
         emit AuctionBidPlaced(itemId, msg.sender, msg.value);
     }
@@ -188,6 +200,6 @@ contract AuctionModular {
         uint256 itemId,
         address user
     ) public view returns (uint256) {
-        return bids[itemId][user];
+        return refunds[itemId][user];
     }
 }
