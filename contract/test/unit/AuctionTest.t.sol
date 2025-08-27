@@ -110,5 +110,18 @@ contract AuctionTest is Test {
         // vm.expectRevert("Seller cannot bid on own auction");
         // vm.prank(user);
         // auction.placeBid{value: 2 ether}(1);
+
+        vm.prank(user2);
+        auction.placeBid{value: 2.5 ether}(1);
+        assertEq(auction.getUserRefundableAmount(1, user2), 0 ether);
+        assertEq(auction.getUserRefundableAmount(1, user3), 1.5 ether);
+
+        vm.prank(user3);
+        auction.placeBid{value: 4 ether}(1);
+        assertEq(auction.getUserRefundableAmount(1, user2), 3.5 ether);
+        assertEq(auction.getUserRefundableAmount(1, user3), 0 ether);
+
+        assertEq(auction.getAuction(1).highestBid, 5.5 ether);
+        assertEq(auction.getAuction(1).highestBidder, user3);
     }
 }
