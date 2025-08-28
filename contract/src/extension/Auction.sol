@@ -153,11 +153,16 @@ contract AuctionModular is AutomationCompatibleInterface {
     {
         uint256[] memory expiredAuctions = new uint256[](auctionCounter);
         uint256 index;
-        for (uint256 i = 0; i < auctionCounter; i++) {
-            if (block.timestamp >= auctions[i].endTime) {
+        for (uint256 i = 1; i <= auctionCounter; i++) {
+            if (
+                block.timestamp >= auctions[i].endTime &&
+                auctions[i].highestBidder != address(0) &&
+                auctions[i].isActive &&
+                auctions[i].highestBid > 0
+            ) {
                 expiredAuctions[index] = auctions[i].itemId;
+                index++;
             }
-            index++;
         }
         upkeepNeeded = index > 0;
         performData = abi.encode(expiredAuctions);

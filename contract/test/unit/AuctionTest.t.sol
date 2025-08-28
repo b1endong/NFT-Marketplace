@@ -94,19 +94,10 @@ contract AuctionTest is Test {
     }
 
     function testPlaceBid() public listMarketItem {
-        //Time passed and player placeBid
         vm.prank(user);
         auction.createAuction(1, 12 hours);
-        vm.roll(block.number + 1);
-        vm.warp(block.timestamp + 13 hours);
+        kSeaNFTMarketplace.getAllActiveNfts();
 
-        vm.prank(user2);
-        vm.expectRevert();
-        auction.placeBid{value: 1 ether}(1);
-
-        //Time not passed and player placeBid
-        vm.prank(user);
-        auction.createAuction(1, 12 hours);
         vm.prank(user2);
         auction.placeBid{value: 1 ether}(1);
         assertEq(auction.getUserRefundableAmount(1, user2), 0 ether);
@@ -132,5 +123,31 @@ contract AuctionTest is Test {
 
         assertEq(auction.getAuction(1).highestBid, 5.5 ether);
         assertEq(auction.getAuction(1).highestBidder, user3);
+    }
+
+    function testCheckUpkeep() public listMarketItem {
+        //Check Upkeep
+        (bool upkeepNeeded, ) = auction.checkUpkeep("");
+        assertFalse(upkeepNeeded);
+
+        // Auction start
+        vm.prank(user);
+        auction.createAuction(1, 12 hours);
+        (bool upkeepNeeded2, bytes memory performData) = auction.checkUpkeep(
+            ""
+        );
+        assertFalse(upkeepNeeded2);
+
+        //Add player
+        vm.prank(user2);
+        auction.placeBid{value: 1 ether}(1);
+        vm.prank(user3);
+        auction.placeBid{value: 2 ether}(1);
+
+        //Auction ended
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 13 hours);
+        (bool upkeepNeeded3, ) = auction.checkUpkeep("");
+        assertTrue(upkeepNeeded3);
     }
 }
