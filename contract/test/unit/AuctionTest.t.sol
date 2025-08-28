@@ -94,10 +94,19 @@ contract AuctionTest is Test {
     }
 
     function testPlaceBid() public listMarketItem {
+        //Time passed and player placeBid
         vm.prank(user);
         auction.createAuction(1, 12 hours);
-        kSeaNFTMarketplace.getAllActiveNfts();
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 13 hours);
 
+        vm.prank(user2);
+        vm.expectRevert();
+        auction.placeBid{value: 1 ether}(1);
+
+        //Time not passed and player placeBid
+        vm.prank(user);
+        auction.createAuction(1, 12 hours);
         vm.prank(user2);
         auction.placeBid{value: 1 ether}(1);
         assertEq(auction.getUserRefundableAmount(1, user2), 0 ether);

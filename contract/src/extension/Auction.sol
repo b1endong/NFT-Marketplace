@@ -2,8 +2,9 @@
 pragma solidity ^0.8.0;
 
 import {KSeaNFTMarketplace} from "../KSeaNFTMarketplace.sol";
+import {AutomationCompatibleInterface} from "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
 
-contract AuctionModular {
+contract AuctionModular is AutomationCompatibleInterface {
     /*//////////////////////////////////////////////////////////////
                                  ERROR
     //////////////////////////////////////////////////////////////*/
@@ -36,8 +37,8 @@ contract AuctionModular {
     //////////////////////////////////////////////////////////////*/
 
     KSeaNFTMarketplace private marketplace;
-    uint256 private maxDurationAuction;
     uint256 private auctionCounter;
+    uint256 public maxDuration;
     mapping(uint256 => Auction) private auctions; // itemId => Auction
     mapping(uint256 => mapping(address => uint256)) private refunds; // itemId => (bidder => amount) : refund mapping
     mapping(uint256 => mapping(address => uint256)) private bids; // itemId => (bidder => amount) : bid mapping
@@ -59,7 +60,7 @@ contract AuctionModular {
 
     constructor(address _marketplace, uint256 _maxDuration) {
         marketplace = KSeaNFTMarketplace(_marketplace);
-        maxDurationAuction = _maxDuration;
+        maxDuration = _maxDuration;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -71,12 +72,12 @@ contract AuctionModular {
             revert Auction__NotSeller();
         }
 
-        if (duration > maxDurationAuction) {
-            revert Auction__DurationMustBeLessThanMax();
-        }
-
         if (duration <= 0) {
             revert Auction__DurationMustBeGreaterThanZero();
+        }
+
+        if (duration > maxDuration) {
+            revert Auction__DurationMustBeLessThanMax();
         }
 
         if (auctions[itemId].isActive) {
@@ -125,15 +126,6 @@ contract AuctionModular {
             auction.highestBidder = msg.sender;
         }
 
-        // // // Refund the previous highest bidder
-        // // if (auction.highestBidder != address(0)) {
-        // //     bids[itemId][auction.highestBidder] += auction.highestBid;
-        // // }
-
-        // // Update the auction with the new highest bid
-        // auction.highestBid = msg.value;
-        // auction.highestBidder = msg.sender;
-
         emit AuctionBidPlaced(itemId, msg.sender, msg.value);
     }
 
@@ -148,6 +140,35 @@ contract AuctionModular {
         (bool success, ) = payable(msg.sender).call{value: amount}("");
         if (!success) {
             revert Auction__RefundFailed();
+        }
+    }
+
+    function checkUpkeep(
+        bytes calldata /* checkData */
+    )
+        external
+        view
+        override
+        returns (bool upkeepNeeded, bytes memory performData)
+    {
+        uint256[] memory expiredAuctions = new uint256[](auctionCounter);
+        uint256 index;
+        for (uint256 i = 0; i < auctionCounter; i++) {
+            if (block.timestamp >= auctions[i].endTime) {
+                expiredAuctions[index] = auctions[i].itemId;
+            }
+            index++;
+        }
+        upkeepNeeded = index > 0;
+        performData = abi.encode(expiredAuctions);
+    }
+
+    function performUpkeep(bytes calldata performData) external override {
+        uint256[] memory expiredAuctions = abi.decode(performData, (uint256[]));
+
+        for (uint256 i = 0; i < expiredAuctions.length; i++) {
+            uint256 itemId = expiredAuctions[i];
+            this.settleAuction(itemId);
         }
     }
 
