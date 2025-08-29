@@ -15,6 +15,7 @@ contract AuctionTest is Test {
     address private user = makeAddr("user");
     address private user2 = makeAddr("user2");
     address private user3 = makeAddr("user3");
+    address private user4 = makeAddr("user4");
     string private constant TOKEN_URI =
         "ipfs://bafybeifiphugocn3g6jsczy2xgxbbik7rshonw54j4kxnuvdfsokgxxyum";
     string private constant TOKEN_URI_2 =
@@ -62,6 +63,7 @@ contract AuctionTest is Test {
         vm.deal(user, initialBalance);
         vm.deal(user2, initialBalance);
         vm.deal(user3, initialBalance);
+        vm.deal(user4, initialBalance);
     }
 
     function testSetUp() public view {
@@ -150,10 +152,26 @@ contract AuctionTest is Test {
         // assertFalse(upkeepNeeded3);
 
         //Add player
+
         vm.prank(user2);
-        auction.placeBid{value: 1 ether}(1);
-        vm.prank(user3);
+        vm.expectRevert();
+        auction.placeBid{value: 0.05 ether}(1);
+
+        vm.prank(user2);
         auction.placeBid{value: 2 ether}(1);
+
+        vm.prank(user2);
+        vm.expectRevert();
+        auction.placeBid{value: 3 ether}(1);
+
+        vm.prank(user3);
+        vm.expectRevert();
+        auction.placeBid{value: 1 ether}(1);
+
+        vm.prank(user3);
+        auction.placeBid{value: 5 ether}(1);
+
+        auction.getAuction(1);
 
         //Auction ended with bidders
         vm.roll(block.number + 1);
@@ -163,12 +181,57 @@ contract AuctionTest is Test {
         );
         assertTrue(upkeepNeeded4);
 
-        vm.prank(user3);
         auction.performUpkeep(performData4);
         (bool upkeepNeeded5, bytes memory performData5) = auction.checkUpkeep(
             ""
         );
         assertFalse(upkeepNeeded5);
-        kSeaNFTMarketplace.getAllNfts();
+    }
+
+    function testRefundBid() public listMarketItem {
+        //Auction created
+        vm.prank(user);
+        auction.createAuction(1, 12 hours);
+        //User place bid
+        vm.prank(user2);
+        auction.placeBid{value: 1 ether}(1);
+        vm.prank(user3);
+        auction.placeBid{value: 2 ether}(1);
+        vm.prank(user2);
+        auction.placeBid{value: 3 ether}(1);
+        vm.prank(user3);
+        auction.placeBid{value: 6 ether}(1);
+        vm.prank(user4);
+        auction.placeBid{value: 10 ether}(1);
+
+        assertEq(
+            user2.balance,
+            initialBalance - 1 ether - 3 ether - LISTING_PRICE
+        );
+        assertEq(user3.balance, initialBalance - 2 ether - 6 ether);
+        assertEq(user4.balance, initialBalance - 10 ether);
+        assertEq(auction.getUserRefundableAmount(1, user2), 4 ether);
+        assertEq(auction.getUserRefundableAmount(1, user3), 8 ether);
+        assertEq(auction.getUserRefundableAmount(1, user4), 0 ether);
+
+        // Refund bids for user 2
+        vm.prank(user2);
+        auction.refundBid(1);
+        assertEq(user2.balance, initialBalance - LISTING_PRICE);
+        assertEq(auction.getUserRefundableAmount(1, user2), 0 ether);
+        assertEq(auction.getUserRefundableAmount(1, user3), 8 ether);
+        assertEq(auction.getUserRefundableAmount(1, user4), 0 ether);
+        assertEq(address(auction).balance, 18 ether);
+
+        //Auction ended
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 13 hours);
+        (bool upkeepNeeded, bytes memory performData) = auction.checkUpkeep("");
+        auction.performUpkeep(performData);
+        //RefundBid after auction ended
+        vm.prank(user3);
+        auction.refundBid(1);
+        assertEq(auction.getUserRefundableAmount(1, user3), 0 ether);
+        assertEq(user3.balance, initialBalance);
     }
 }

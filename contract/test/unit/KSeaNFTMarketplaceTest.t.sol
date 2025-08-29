@@ -274,4 +274,3 @@ contract KSeaNFTMarketplaceTest is Test {
         assertEq(kSeaNFT.balanceOf(user2), 1);
     }
 }
-.
