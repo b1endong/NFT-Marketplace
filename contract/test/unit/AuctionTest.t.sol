@@ -56,7 +56,7 @@ contract AuctionTest is Test {
             FEE_PERCENTAGE
         );
         auction = new AuctionModular(
-            address(kSeaNFTMarketplace),
+            payable(address(kSeaNFTMarketplace)),
             MAX_DURATION_AUCTION
         );
         vm.deal(user, initialBalance);
@@ -123,6 +123,9 @@ contract AuctionTest is Test {
 
         assertEq(auction.getAuction(1).highestBid, 5.5 ether);
         assertEq(auction.getAuction(1).highestBidder, user3);
+
+        uint256 balance = auction.getContractBalance();
+        console.log("Contract balance:", balance);
     }
 
     function testCheckUpkeep() public listMarketItem {
@@ -133,10 +136,18 @@ contract AuctionTest is Test {
         // Auction start
         vm.prank(user);
         auction.createAuction(1, 12 hours);
-        (bool upkeepNeeded2, bytes memory performData) = auction.checkUpkeep(
+        (bool upkeepNeeded2, bytes memory performData2) = auction.checkUpkeep(
             ""
         );
         assertFalse(upkeepNeeded2);
+
+        // // Auction ended without bidders
+        // vm.roll(block.number + 1);
+        // vm.warp(block.timestamp + 13 hours);
+        // (bool upkeepNeeded3, bytes memory performData3) = auction.checkUpkeep(
+        //     ""
+        // );
+        // assertFalse(upkeepNeeded3);
 
         //Add player
         vm.prank(user2);
@@ -144,10 +155,20 @@ contract AuctionTest is Test {
         vm.prank(user3);
         auction.placeBid{value: 2 ether}(1);
 
-        //Auction ended
+        //Auction ended with bidders
         vm.roll(block.number + 1);
         vm.warp(block.timestamp + 13 hours);
-        (bool upkeepNeeded3, ) = auction.checkUpkeep("");
-        assertTrue(upkeepNeeded3);
+        (bool upkeepNeeded4, bytes memory performData4) = auction.checkUpkeep(
+            ""
+        );
+        assertTrue(upkeepNeeded4);
+
+        vm.prank(user3);
+        auction.performUpkeep(performData4);
+        (bool upkeepNeeded5, bytes memory performData5) = auction.checkUpkeep(
+            ""
+        );
+        assertFalse(upkeepNeeded5);
+        kSeaNFTMarketplace.getAllNfts();
     }
 }

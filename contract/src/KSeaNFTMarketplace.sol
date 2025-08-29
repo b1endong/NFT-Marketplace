@@ -123,6 +123,18 @@ contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
     }
 
     /*//////////////////////////////////////////////////////////////
+                       RECEIVE/FALLBACK FUNCTION
+    //////////////////////////////////////////////////////////////*/
+
+    receive() external payable {
+        _pendingWithdrawals += msg.value;
+    }
+
+    fallback() external payable {
+        _pendingWithdrawals += msg.value;
+    }
+
+    /*//////////////////////////////////////////////////////////////
                                  ADMIN
     //////////////////////////////////////////////////////////////*/
 
@@ -299,38 +311,30 @@ contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
                            EXTERNAL FUNCTION
     //////////////////////////////////////////////////////////////*/
 
-    function settleAuction(
+    function transferNftToWinner(
         uint256 itemId,
         address winner,
         uint256 amount,
-        address _auctionModule
-    ) external payable nonReentrant onlyAuctionModule(_auctionModule) {
+        uint256 fee
+    ) external {
         marketItem storage item = _idToMarketItem[itemId];
-        if (item.isSold) {
-            revert Marketplace__ItemAlreadySold();
-        }
-
-        uint fee = (amount * feePercentage) / 100;
-        _pendingWithdrawals += fee;
-        uint256 transferProcess = amount - fee;
         IERC721 nft = IERC721(item.nftContract);
-
-        (bool success, ) = item.seller.call{value: transferProcess}("");
-        if (!success) {
-            revert Marketplace__TransferFailed();
-        }
-
         nft.safeTransferFrom(address(this), winner, item.tokenId);
+
+        item.owner = payable(winner);
+        item.seller = payable(address(0));
+        item.isSold = true;
+        _itemSold++;
 
         emit MarketItemSale(
             itemId,
             item.tokenId,
             item.nftContract,
-            item.seller,
-            item.owner,
-            item.price,
+            payable(address(0)),
+            payable(winner),
+            amount,
             fee,
-            item.isSold
+            true
         );
     }
 
@@ -451,6 +455,10 @@ contract KSeaNFTMarketplace is ReentrancyGuard, IERC721Receiver {
 
     function getFeePercentage() public view returns (uint256) {
         return feePercentage;
+    }
+
+    function getFeeRecipient() public view returns (address) {
+        return address(this);
     }
 
     function getOwner() public view returns (address) {

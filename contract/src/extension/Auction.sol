@@ -14,11 +14,15 @@ contract AuctionModular is AutomationCompatibleInterface {
     error Auction__AuctionAlreadyActive();
     error Auction__AuctionNotActive();
     error Auction__BidNotHighEnough();
+    error Auction__InvalidBidder();
+    error Auction__AlreadyHighestBidder();
     error Auction__RefundFailed();
     error Auction__NoBidPlaced();
     error Auction__NotHighestBidder();
     error Auction__NotEnded();
     error Auction__DurationMustBeLessThanMax();
+    error Auction__TransferFailed();
+    error Auction__NftTransferFailed();
 
     /*//////////////////////////////////////////////////////////////
                             TYPE DECLARATION
@@ -26,6 +30,8 @@ contract AuctionModular is AutomationCompatibleInterface {
 
     struct Auction {
         uint256 itemId;
+        address owner;
+        uint256 startingBid;
         uint256 highestBid;
         address highestBidder;
         uint256 endTime;
@@ -47,18 +53,30 @@ contract AuctionModular is AutomationCompatibleInterface {
                                  EVENT
     //////////////////////////////////////////////////////////////*/
 
-    event AuctionCreated(uint256 indexed itemId, uint256 endTime);
+    event AuctionCreated(
+        uint256 indexed itemId,
+        address owner,
+        uint256 endTime
+    );
     event AuctionBidPlaced(
         uint256 indexed itemId,
         address indexed bidder,
         uint256 amount
     );
 
+    event AuctionSettled(
+        uint256 indexed itemId,
+        address indexed winner,
+        address owner,
+        uint256 amount,
+        uint256 fee
+    );
+
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-    constructor(address _marketplace, uint256 _maxDuration) {
+    constructor(address payable _marketplace, uint256 _maxDuration) {
         marketplace = KSeaNFTMarketplace(_marketplace);
         maxDuration = _maxDuration;
     }
@@ -86,6 +104,8 @@ contract AuctionModular is AutomationCompatibleInterface {
 
         auctions[itemId] = Auction({
             itemId: itemId,
+            owner: msg.sender,
+            startingBid: marketplace.getActiveMarketItem(itemId).price,
             highestBid: 0,
             highestBidder: address(0),
             endTime: block.timestamp + duration,
@@ -93,49 +113,48 @@ contract AuctionModular is AutomationCompatibleInterface {
         });
         auctionCounter++;
 
-        emit AuctionCreated(itemId, block.timestamp + duration);
+        emit AuctionCreated(itemId, msg.sender, block.timestamp + duration);
     }
 
     function placeBid(uint256 itemId) external payable {
-        Auction storage auction = auctions[itemId];
-        if (!auction.isActive || block.timestamp >= auction.endTime) {
+        Auction storage a = auctions[itemId];
+        if (!a.isActive || block.timestamp >= a.endTime) {
             revert Auction__AuctionNotActive();
         }
 
-        if (msg.value < marketplace.getActiveMarketItem(itemId).price) {
+        if (msg.value < a.startingBid || msg.value <= a.highestBid) {
             revert Auction__BidNotHighEnough();
         }
 
-        if (msg.value <= auction.highestBid) {
-            revert Auction__BidNotHighEnough();
+        if (msg.sender == marketplace.getActiveMarketItem(itemId).seller) {
+            revert Auction__InvalidBidder();
         }
 
-        require(
-            msg.sender != marketplace.getActiveMarketItem(itemId).seller,
-            "Seller cannot bid on own auction"
-        );
+        if (msg.sender == a.highestBidder) {
+            revert Auction__AlreadyHighestBidder();
+        }
 
         if (msg.sender != address(0)) {
             bids[itemId][msg.sender] += msg.value;
         }
 
-        if (bids[itemId][msg.sender] > auction.highestBid) {
-            refunds[itemId][auction.highestBidder] = auction.highestBid;
+        if (bids[itemId][msg.sender] > a.highestBid) {
+            refunds[itemId][a.highestBidder] = a.highestBid;
             refunds[itemId][msg.sender] = 0;
-            auction.highestBid = bids[itemId][msg.sender];
-            auction.highestBidder = msg.sender;
+            a.highestBid = bids[itemId][msg.sender];
+            a.highestBidder = msg.sender;
         }
 
         emit AuctionBidPlaced(itemId, msg.sender, msg.value);
     }
 
     function refundBid(uint256 itemId) external {
-        uint256 amount = bids[itemId][msg.sender];
+        uint256 amount = refunds[itemId][msg.sender];
         if (amount == 0) {
             revert Auction__NoBidPlaced();
         }
 
-        bids[itemId][msg.sender] = 0;
+        refunds[itemId][msg.sender] = 0;
 
         (bool success, ) = payable(msg.sender).call{value: amount}("");
         if (!success) {
@@ -168,6 +187,61 @@ contract AuctionModular is AutomationCompatibleInterface {
         performData = abi.encode(expiredAuctions);
     }
 
+    function settleAuction(uint256 itemId) external {
+        Auction storage a = auctions[itemId];
+
+        if (!a.isActive) {
+            revert Auction__AuctionNotActive();
+        }
+
+        if (block.timestamp < a.endTime) {
+            revert Auction__NotEnded();
+        }
+
+        if (a.highestBidder == address(0)) {
+            // không có bid -> kết thúc đấu giá
+            a.isActive = false;
+            emit AuctionSettled(itemId, a.owner, address(0), 0, 0);
+            return;
+        }
+        uint256 feePercentage = marketplace.getFeePercentage();
+        uint fee = (a.highestBid * feePercentage) / 100;
+        uint256 transferProcess = a.highestBid - fee;
+
+        //Trả seller
+        (bool success1, ) = payable(a.owner).call{value: transferProcess}("");
+        if (!success1) {
+            revert Auction__TransferFailed();
+        }
+
+        //Trả fee cho marketplace
+        (bool success2, ) = payable(address(marketplace)).call{value: fee}("");
+        if (!success2) {
+            revert Auction__TransferFailed();
+        }
+
+        a.isActive = false;
+        try
+            marketplace.transferNftToWinner(
+                a.itemId,
+                a.highestBidder,
+                a.highestBid,
+                fee
+            )
+        {
+            auctionCounter--;
+            emit AuctionSettled(
+                a.itemId,
+                a.highestBidder,
+                a.owner,
+                a.highestBid,
+                fee
+            );
+        } catch {
+            revert Auction__NftTransferFailed();
+        }
+    }
+
     function performUpkeep(bytes calldata performData) external override {
         uint256[] memory expiredAuctions = abi.decode(performData, (uint256[]));
 
@@ -175,31 +249,6 @@ contract AuctionModular is AutomationCompatibleInterface {
             uint256 itemId = expiredAuctions[i];
             this.settleAuction(itemId);
         }
-    }
-
-    function settleAuction(uint256 itemId) external {
-        Auction storage auction = auctions[itemId];
-        if (msg.sender != auction.highestBidder) {
-            revert Auction__NotHighestBidder();
-        }
-
-        if (!auction.isActive) {
-            revert Auction__AuctionNotActive();
-        }
-
-        if (block.timestamp < auction.endTime) {
-            revert Auction__NotEnded();
-        }
-
-        auction.isActive = false;
-
-        marketplace.settleAuction(
-            auction.itemId,
-            auction.highestBidder,
-            auction.highestBid,
-            address(this)
-        );
-        auctionCounter--;
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -227,5 +276,9 @@ contract AuctionModular is AutomationCompatibleInterface {
         address user
     ) public view returns (uint256) {
         return refunds[itemId][user];
+    }
+
+    function getContractBalance() public view returns (uint256) {
+        return address(this).balance;
     }
 }
