@@ -10,6 +10,7 @@ contract AuctionModular is AutomationCompatibleInterface {
     //////////////////////////////////////////////////////////////*/
 
     error Auction__NotSeller();
+    error Auction__HasBids();
     error Auction__DurationMustBeGreaterThanZero();
     error Auction__AuctionAlreadyActive();
     error Auction__AuctionNotActive();
@@ -72,6 +73,14 @@ contract AuctionModular is AutomationCompatibleInterface {
         uint256 fee
     );
 
+    event AuctionCancelled(uint256 indexed itemId);
+
+    event AuctionRefunded(
+        uint256 indexed itemId,
+        address indexed bidder,
+        uint256 amount
+    );
+
     /*//////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
@@ -82,7 +91,7 @@ contract AuctionModular is AutomationCompatibleInterface {
     }
 
     /*//////////////////////////////////////////////////////////////
-                            PUBLIC FUNCTION
+                            EXTERNAL FUNCTION
     //////////////////////////////////////////////////////////////*/
 
     function createAuction(uint256 itemId, uint256 duration) external {
@@ -160,6 +169,8 @@ contract AuctionModular is AutomationCompatibleInterface {
         if (!success) {
             revert Auction__RefundFailed();
         }
+
+        emit AuctionRefunded(itemId, msg.sender, amount);
     }
 
     function checkUpkeep(
@@ -249,6 +260,24 @@ contract AuctionModular is AutomationCompatibleInterface {
             uint256 itemId = expiredAuctions[i];
             this.settleAuction(itemId);
         }
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                            PUBLIC FUNCTION
+    //////////////////////////////////////////////////////////////*/
+
+    function cancelAuction(uint256 itemId) external {
+        Auction storage a = auctions[itemId];
+        if (a.owner != msg.sender) {
+            revert Auction__NotSeller();
+        }
+
+        if (a.highestBidder != address(0) || a.highestBid > 0) {
+            revert Auction__HasBids();
+        }
+
+        a.isActive = false;
+        emit AuctionCancelled(itemId);
     }
 
     /*//////////////////////////////////////////////////////////////

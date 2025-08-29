@@ -49,7 +49,32 @@ contract AuctionTest is Test {
         _;
     }
 
-    event AuctionCreated(uint256 indexed itemId, uint256 endTime);
+    event AuctionCreated(
+        uint256 indexed itemId,
+        address owner,
+        uint256 endTime
+    );
+    event AuctionBidPlaced(
+        uint256 indexed itemId,
+        address indexed bidder,
+        uint256 amount
+    );
+
+    event AuctionSettled(
+        uint256 indexed itemId,
+        address indexed winner,
+        address owner,
+        uint256 amount,
+        uint256 fee
+    );
+
+    event AuctionCancelled(uint256 indexed itemId);
+
+    event AuctionRefunded(
+        uint256 indexed itemId,
+        address indexed bidder,
+        uint256 amount
+    );
 
     function setUp() public {
         kSeaNFTMarketplace = new KSeaNFTMarketplace(
@@ -82,7 +107,7 @@ contract AuctionTest is Test {
         // Create a new auction
 
         vm.expectEmit();
-        emit AuctionCreated(1, block.timestamp + 12 hours);
+        emit AuctionCreated(1, user, block.timestamp + 12 hours);
         vm.prank(user);
         auction.createAuction(1, 12 hours);
 
@@ -92,7 +117,6 @@ contract AuctionTest is Test {
         assertEq(auction.getAuction(1).highestBidder, address(0));
         assertEq(auction.getAuction(1).endTime, block.timestamp + 12 hours);
         assertTrue(auction.getAuction(1).isActive);
-        emit AuctionCreated(1, block.timestamp + 12 hours);
     }
 
     function testPlaceBid() public listMarketItem {
@@ -100,10 +124,15 @@ contract AuctionTest is Test {
         auction.createAuction(1, 12 hours);
         kSeaNFTMarketplace.getAllActiveNfts();
 
+        vm.expectEmit();
+        emit AuctionBidPlaced(1, user2, 1 ether);
         vm.prank(user2);
         auction.placeBid{value: 1 ether}(1);
+
         assertEq(auction.getUserRefundableAmount(1, user2), 0 ether);
 
+        vm.expectEmit();
+        emit AuctionBidPlaced(1, user3, 1.5 ether);
         vm.prank(user3);
         auction.placeBid{value: 1.5 ether}(1);
         assertEq(auction.getUserRefundableAmount(1, user2), 1 ether);
@@ -215,6 +244,8 @@ contract AuctionTest is Test {
         assertEq(auction.getUserRefundableAmount(1, user4), 0 ether);
 
         // Refund bids for user 2
+        vm.expectEmit();
+        emit AuctionRefunded(1, user2, 4 ether);
         vm.prank(user2);
         auction.refundBid(1);
         assertEq(user2.balance, initialBalance - LISTING_PRICE);
@@ -229,9 +260,28 @@ contract AuctionTest is Test {
         (bool upkeepNeeded, bytes memory performData) = auction.checkUpkeep("");
         auction.performUpkeep(performData);
         //RefundBid after auction ended
+        vm.expectEmit();
+        emit AuctionRefunded(1, user3, 8 ether);
         vm.prank(user3);
         auction.refundBid(1);
         assertEq(auction.getUserRefundableAmount(1, user3), 0 ether);
         assertEq(user3.balance, initialBalance);
+    }
+
+    function testAuctionCancelled() public listMarketItem {
+        // Create an auction
+        vm.prank(user);
+        auction.createAuction(1, 12 hours);
+        auction.getAuction(1);
+
+        // Cancel the auction
+        vm.expectEmit();
+        emit AuctionCancelled(1);
+        vm.prank(user);
+        auction.cancelAuction(1);
+
+        // Check that the auction is no longer active
+        bool isActive = auction.getAuction(1).isActive;
+        assertFalse(isActive);
     }
 }
