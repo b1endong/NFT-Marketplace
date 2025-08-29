@@ -217,6 +217,46 @@ contract AuctionTest is Test {
         assertFalse(upkeepNeeded5);
     }
 
+    function testPerformUpkeep() public listMarketItem {
+        // Create an auction
+        vm.prank(user);
+        auction.createAuction(1, 12 hours);
+        auction.getAuction(1);
+        assertEq(kSeaNFT.ownerOf(1), address(kSeaNFTMarketplace));
+        //User place bid
+        vm.prank(user2);
+        auction.placeBid{value: 1 ether}(1);
+        vm.prank(user3);
+        auction.placeBid{value: 2 ether}(1);
+        vm.prank(user2);
+        auction.placeBid{value: 3 ether}(1);
+        vm.prank(user3);
+        auction.placeBid{value: 6 ether}(1);
+        vm.prank(user4);
+        auction.placeBid{value: 10 ether}(1);
+        //Auction ended
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 13 hours);
+        (bool upkeepNeeded, bytes memory performData) = auction.checkUpkeep("");
+        auction.performUpkeep(performData);
+
+        assertEq(user.balance, initialBalance - LISTING_PRICE + 9.8 ether);
+        assertEq(user4.balance, initialBalance - 10 ether);
+        assertEq(
+            address(kSeaNFTMarketplace).balance,
+            2 * LISTING_PRICE + 0.2 ether
+        );
+        assertEq(kSeaNFT.ownerOf(1), user4);
+        assertEq(kSeaNFT.balanceOf(user4), 1);
+        assertEq(kSeaNFT.balanceOf(user), 0);
+        assertEq(kSeaNFT.balanceOf(address(kSeaNFTMarketplace)), 1);
+        vm.prank(user2);
+        auction.refundBid(1);
+        vm.prank(user3);
+        auction.refundBid(1);
+        assertEq(address(auction).balance, 0 ether);
+    }
+
     function testRefundBid() public listMarketItem {
         //Auction created
         vm.prank(user);
