@@ -231,7 +231,6 @@ contract AuctionModular is AutomationCompatibleInterface {
             revert Auction__TransferFailed();
         }
 
-        a.isActive = false;
         try
             marketplace.transferNftToWinner(
                 a.itemId,
@@ -241,6 +240,7 @@ contract AuctionModular is AutomationCompatibleInterface {
             )
         {
             auctionCounter--;
+            a.isActive = false;
             emit AuctionSettled(
                 a.itemId,
                 a.highestBidder,
