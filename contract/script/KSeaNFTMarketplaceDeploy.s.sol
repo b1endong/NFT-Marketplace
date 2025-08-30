@@ -6,11 +6,11 @@ import {KSeaNFTMarketplace} from "../src/KSeaNFTMarketplace.sol";
 import {FEE_PERCENTAGE, LISTING_PRICE, MAX_DURATION_AUCTION} from "../src/Constant.sol";
 import {AuctionModular} from "../src/extension/Auction.sol";
 
-contract kSeaNFTMarketplaceDeploy is Script {
+contract KSeaNFTMarketplaceDeploy is Script {
     KSeaNFTMarketplace private kSeaNFTMarketplace;
     AuctionModular private auction;
 
-    function run() external {
+    function run() external returns (KSeaNFTMarketplace) {
         vm.startBroadcast();
         //Deploy marketplace
         kSeaNFTMarketplace = new KSeaNFTMarketplace(
@@ -23,5 +23,6 @@ contract kSeaNFTMarketplaceDeploy is Script {
             MAX_DURATION_AUCTION
         );
         vm.stopBroadcast();
+        return kSeaNFTMarketplace;
     }
 }

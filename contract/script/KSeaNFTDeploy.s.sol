@@ -4,10 +4,13 @@ pragma solidity ^0.8.0;
 import {Script} from "@forge/src/Script.sol";
 import {KSeaNFT} from "../src/KSeaNFT.sol";
 
-contract DeployKSeaNFT is Script {
-    function run() external {
+contract KSeaNFTDeploy is Script {
+    KSeaNFT private kSeaNFT;
+
+    function run() external returns (KSeaNFT) {
         vm.startBroadcast();
-        new KSeaNFT();
+        kSeaNFT = new KSeaNFT();
         vm.stopBroadcast();
+        return kSeaNFT;
     }
 }
