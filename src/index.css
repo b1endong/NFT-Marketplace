@@ -74,18 +74,30 @@
     @apply flex items-center justify-between;
   }
 
-  .custom-transition {
-    @apply transition duration-300 ease-in-out;
-  }
 
-  .max-w-calc {
-    max-width: calc(100% - 230px);
-  }
 }
+
+@utility max-w-calc {
+  max-width: calc(100% - 230px);
+}
+
+@utility custom-gradient {
+  background: linear-gradient(136deg, rgba(58, 176, 240, 1) 0%, rgba(179, 67, 217, 1) 100%);
+}
+
+@utility custom-transition {
+  @apply transition duration-300 ease-in-out;
+}
+
+
 
 @layer components {
   .base-button {
-    @apply bg-blue-500 text-white p-3 rounded-2xl transition duration-300 ease-in-out;
+    @apply bg-blue-500 text-white p-3 rounded-2xl custom-transition;
+  }
+
+  .gradient-button {
+    @apply custom-gradient p-3 rounded-2xl custom-transition;
   }
 
   .base-button:hover {
