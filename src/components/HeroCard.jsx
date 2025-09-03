@@ -47,16 +47,34 @@ export default function HeroCard() {
         const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
         const cubeMaterial = new THREE.MeshBasicMaterial({color: 0x00ff00});
         const cubeMesh = new THREE.Mesh(cubeGeometry, cubeMaterial);
-        cubeMesh.scale.setScalar(3);
+        cubeMesh.scale.setScalar(2);
+        cubeMesh.rotation.y = Math.PI;
         scene.add(cubeMesh);
-        scene.background = new THREE.Color(0x2b2b2b);
+        scene.background = new THREE.Color(0x000000);
 
         //Raycaster
         const pointer = new THREE.Vector2();
-        window.addEventListener("mousedown", (event) => {
-            pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-            pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
-        });
+
+        const canvasRect = canvas.getBoundingClientRect();
+        console.log(canvasRect);
+
+        const handleMouseMove = (event) => {
+            // Lấy vị trí của canvas trên màn hình
+            const canvasRect = canvas.getBoundingClientRect();
+
+            // Tính tọa độ chuột relative với canvas
+            const mouseX = event.clientX - canvasRect.left;
+            const mouseY = event.clientY - canvasRect.top;
+
+            // Chuyển đổi sang normalized device coordinates (-1 to 1)
+            pointer.x = (mouseX / canvasRect.width) * 2 - 1;
+            pointer.y = -(mouseY / canvasRect.height) * 2 + 1;
+        };
+
+        canvas.addEventListener("mousemove", handleMouseMove);
+
+        const defaultQuaternion = new THREE.Quaternion();
+        defaultQuaternion.copy(cubeMesh.quaternion);
 
         //renderLoop
         const animate = () => {
@@ -64,6 +82,18 @@ export default function HeroCard() {
             // cubeMesh.rotation.x += 0.01;
             // cubeMesh.rotation.y += 0.01;
             renderer.render(scene, camera);
+            raycaster.setFromCamera(pointer, camera);
+            if (Math.abs(pointer.x) < 0.97 && Math.abs(pointer.y) < 0.97) {
+                const target = raycaster.ray.origin.add(
+                    raycaster.ray.direction.multiplyScalar(10)
+                );
+                const temp = new THREE.Object3D();
+                temp.position.copy(cubeMesh.position);
+                temp.lookAt(target);
+                cubeMesh.quaternion.slerp(temp.quaternion, 0.1);
+            } else {
+                cubeMesh.quaternion.slerp(defaultQuaternion, 0.05);
+            }
         };
         animate();
     }, [dimensions]);
