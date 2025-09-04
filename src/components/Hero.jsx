@@ -1,9 +1,24 @@
 import HeroCard from "./HeroCard";
+import {useRef, useEffect} from "react";
 
 export default function Hero() {
+    const infoHeroRef = useRef(null);
+    useEffect(() => {
+        if (infoHeroRef.current) {
+            window.addEventListener("resize", () => {
+                const {width, height} =
+                    infoHeroRef.current.getBoundingClientRect();
+                console.log(`🔍 Container dimensions: ${width} x ${height}`);
+            });
+        }
+    }, []);
+
     return (
-        <div className="flex justify-between items-stretch mt-5 gap-8">
-            <div className="flex flex-col w-[48%] gap-5 justify-between">
+        <div className="flex justify-between py-20 gap-8">
+            <div
+                ref={infoHeroRef}
+                className="flex flex-col w-[48%] gap-5 justify-between"
+            >
                 <div className="flex flex-col gap-5">
                     <h1 className="text-8xl font-bold">
                         Discover digital art & Collect NFTs
@@ -34,7 +49,7 @@ export default function Hero() {
                     </ul>
                 </div>
             </div>
-            <div className="w-[48%] flex">
+            <div className="w-[48%] max-h-[555.9625244140625px]">
                 <HeroCard />
             </div>
         </div>

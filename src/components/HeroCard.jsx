@@ -11,6 +11,7 @@ export default function HeroCard() {
         const updateDimensions = () => {
             if (containerRef.current) {
                 const rect = containerRef.current.getBoundingClientRect();
+                console.log(rect.width, rect.height);
                 setDimensions({
                     width: rect.width,
                     height: rect.height,
@@ -19,10 +20,15 @@ export default function HeroCard() {
         };
 
         updateDimensions();
+
         window.addEventListener("resize", updateDimensions);
 
         return () => window.removeEventListener("resize", updateDimensions);
     }, []);
+
+    useEffect(() => {
+        console.log("dimensions updated:", dimensions);
+    }, [dimensions]);
 
     useEffect(() => {
         if (!dimensions.width || !dimensions.height) return;
@@ -56,7 +62,6 @@ export default function HeroCard() {
         const pointer = new THREE.Vector2();
 
         const canvasRect = canvas.getBoundingClientRect();
-        console.log(canvasRect);
 
         const handleMouseMove = (event) => {
             // Lấy vị trí của canvas trên màn hình

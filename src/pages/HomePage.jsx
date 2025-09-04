@@ -1,5 +1,6 @@
 import Navbar from "../components/Navbar";
 import Hero from "../components/Hero";
+import TrendingCollection from "../components/TrendingCollection";
 
 export default function HomePage() {
     return (
@@ -8,6 +9,7 @@ export default function HomePage() {
 
             <div className="max-w-calc m-auto">
                 <Hero />
+                <TrendingCollection />
             </div>
         </>
     );
