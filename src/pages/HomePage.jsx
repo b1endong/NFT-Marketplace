@@ -1,6 +1,7 @@
-import Navbar from "../components/Navbar";
-import Hero from "../components/Hero";
-import TrendingCollection from "../components/TrendingCollection";
+import Navbar from "../components/HomePageComponents/Navbar";
+import Hero from "../components/HomePageComponents/Hero";
+import TrendingCollection from "../components/HomePageComponents/TrendingCollection";
+import TrendingArtist from "../components/HomePageComponents/TrendingArtist";
 
 export default function HomePage() {
     return (
@@ -10,6 +11,7 @@ export default function HomePage() {
             <div className="max-w-calc m-auto">
                 <Hero />
                 <TrendingCollection />
+                <TrendingArtist />
             </div>
         </>
     );
