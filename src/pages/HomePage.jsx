@@ -2,6 +2,7 @@ import Navbar from "../components/HomePageComponents/Navbar";
 import Hero from "../components/HomePageComponents/Hero";
 import TrendingCollection from "../components/HomePageComponents/TrendingCollection";
 import TrendingArtist from "../components/HomePageComponents/TrendingArtist";
+import BrowseCategories from "../components/HomePageComponents/Browse Categories";
 
 export default function HomePage() {
     return (
@@ -12,6 +13,7 @@ export default function HomePage() {
                 <Hero />
                 <TrendingCollection />
                 <TrendingArtist />
+                <BrowseCategories />
             </div>
         </>
     );

@@ -56,7 +56,7 @@ export default function HeroCard() {
         cubeMesh.scale.setScalar(2);
         cubeMesh.rotation.y = Math.PI;
         scene.add(cubeMesh);
-        scene.background = new THREE.Color(0x000000);
+        scene.background = new THREE.Color(0x2b2b2b);
 
         //Raycaster
         const pointer = new THREE.Vector2();

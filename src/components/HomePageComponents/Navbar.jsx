@@ -11,7 +11,7 @@ export default function Navbar() {
                 <li>Marketplace</li>
                 <li>Rankings</li>
                 <li>Auction</li>
-                <button className="base-button p-4   flex items-center">
+                <button className="base-button p-4  flex items-center">
                     <i className="fa-solid fa-wallet mr-3"></i>Connect Wallet
                 </button>
             </ul>

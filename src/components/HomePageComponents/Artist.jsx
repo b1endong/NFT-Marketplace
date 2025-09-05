@@ -1,6 +1,6 @@
 export default function Artist({rank, name, sales}) {
     return (
-        <div className="flex-center flex-col bg-[#3B3B3B] p-5 rounded-2xl col-span-1 row-span-1 relative">
+        <div className="flex-center flex-col bg-[#3B3B3B] p-5 rounded-2xl relative">
             <p className="flex-center bg-[#2B2B2B] w-8 h-8 rounded-full absolute top-4 left-5 text-sm text-white">
                 {rank}
             </p>
