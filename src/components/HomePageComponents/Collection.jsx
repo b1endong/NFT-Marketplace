@@ -5,23 +5,23 @@ export default function Collection() {
         <div>
             <div className="grid grid-cols-3 grid-rows-4 gap-3">
                 <img
-                    className="row-span-3 col-span-3"
-                    src="../public/Highlighted NFT.svg"
+                    className="w-full h-full row-span-3 col-span-3 rounded-2xl"
+                    src="../public/Primary Photo Placeholder.svg"
                     alt="Collection"
                 />
                 <img
-                    className="col-span-1 row-span-1"
-                    src="../public/Highlighted NFT.svg"
+                    className="col-span-1 row-span-1 rounded-2xl"
+                    src="../public/Primary Photo Placeholder.svg"
                     alt="Collection"
                 />
                 <img
-                    className="col-span-1 row-span-1"
-                    src="../public/Highlighted NFT.svg"
+                    className="col-span-1 row-span-1 rounded-2xl"
+                    src="../public/Primary Photo Placeholder.svg"
                     alt="Collection"
                 />
                 <img
-                    className="col-span-1 row-span-1"
-                    src="../public/Highlighted NFT.svg"
+                    className="col-span-1 row-span-1 rounded-2xl"
+                    src="../public/Primary Photo Placeholder.svg"
                     alt="Collection"
                 />
             </div>

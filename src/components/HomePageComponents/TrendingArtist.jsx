@@ -10,8 +10,8 @@ export default function TrendingArtist() {
                     title="Trending Artists"
                     subtitle="Check out the most popular NFT artists right now."
                 />
-                <button className="base-button bg-transparent border-3 font-normal border-[#A259FF]">
-                    <i className="fa-solid fa-ranking-star mr-3 text-[#A259FF]"></i>
+                <button className="base-button bg-transparent border-3 font-normal border-blue-500">
+                    <i className="fa-solid fa-ranking-star mr-3 text-blue-500"></i>
                     View Ranking
                 </button>
             </div>

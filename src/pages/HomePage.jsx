@@ -4,6 +4,7 @@ import TrendingCollection from "../components/HomePageComponents/TrendingCollect
 import TrendingArtist from "../components/HomePageComponents/TrendingArtist";
 import BrowseCategories from "../components/HomePageComponents/Browse Categories";
 import MoreNfts from "../components/HomePageComponents/MoreNfts";
+import HowItWork from "../components/HomePageComponents/HowItWork";
 
 export default function HomePage() {
     return (
@@ -16,6 +17,7 @@ export default function HomePage() {
                 <TrendingArtist />
                 <BrowseCategories />
                 <MoreNfts />
+                <HowItWork />
             </div>
         </>
     );

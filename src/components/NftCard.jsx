@@ -1,10 +1,10 @@
 export default function NftCard() {
     return (
-        <div className="w-105 h-117.25 h-flex-center flex-col rounded-xl overflow-hidden">
+        <div className="w-105 h-117.25 h-flex-center flex-col rounded-t-2xl overflow-hidden">
             <div className="w-full h-75">
                 <img src="/nft1.jpg" alt="" className="w-full h-full" />
             </div>
-            <div className="bg-[#3B3B3B] py-5 px-7 w-full ">
+            <div className="bg-[#3B3B3B] py-5 px-7 w-full rounded-b-2xl ">
                 <div>
                     <p className="text-xl font-bold">Name Nft</p>
                     <p>

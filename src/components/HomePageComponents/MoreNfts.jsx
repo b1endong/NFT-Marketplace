@@ -8,8 +8,8 @@ export default function MoreNfts() {
                     title="Discover More NFTs"
                     subtitle="Explore a wider range of NFTs from various categories."
                 />
-                <button className="base-button px-10 bg-transparent border-3 font-normal border-[#A259FF]">
-                    <i className="fa-regular fa-eye mr-3 text-[#A259FF]"></i>
+                <button className="base-button px-10 bg-transparent border-3 font-normal border-blue-500">
+                    <i className="fa-regular fa-eye mr-3 text-blue-500"></i>
                     See All
                 </button>
             </div>
