@@ -1,5 +1,3 @@
-import {div} from "three/tsl";
-
 export default function Collection() {
     return (
         <div>

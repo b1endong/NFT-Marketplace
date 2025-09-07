@@ -3,7 +3,7 @@ export default function Navbar() {
         <nav className="flex-center-between py-5 px-12">
             <div className="flex items-center ">
                 <i className="fa-solid fa-shop mr-3 text-blue-400"></i>
-                <h1 className="font-mono text-blue-400 text-2xl">
+                <h1 className="space-mono-bold text-blue-400 text-2xl">
                     KSEA Marketplace
                 </h1>
             </div>

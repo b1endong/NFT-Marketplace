@@ -6,6 +6,7 @@ import BrowseCategories from "../components/HomePageComponents/Browse Categories
 import MoreNfts from "../components/HomePageComponents/MoreNfts";
 import HowItWork from "../components/HomePageComponents/HowItWork";
 import SubcribeWidget from "../components/HomePageComponents/SubcribeWidget";
+import Footer from "../components/Footer";
 
 export default function HomePage() {
     return (
@@ -21,6 +22,7 @@ export default function HomePage() {
                 <HowItWork />
                 <SubcribeWidget />
             </div>
+            <Footer />
         </>
     );
 }
