@@ -1,6 +1,6 @@
 import Heading from "./Heading";
 import Artist from "./Artist";
-import {testArtists} from "./Test";
+import {testArtists} from "../../testData/Test";
 
 export default function TrendingArtist() {
     return (

@@ -3,7 +3,7 @@ import SubscribeButton from "./SubscribeButton";
 export default function Footer() {
     return (
         <div className="bg-[#3B3B3B]">
-            <div className="flex gap-20 justify-center pt-10 footer-content relative">
+            <div className="flex-center-around pt-10 footer-content relative px-30">
                 <div className="flex flex-col gap-7">
                     <div className="flex items-center ">
                         <i className="fa-solid fa-shop mr-3 text-blue-400"></i>

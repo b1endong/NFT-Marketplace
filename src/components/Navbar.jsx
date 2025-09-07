@@ -7,10 +7,16 @@ export default function Navbar() {
                     KSEA Marketplace
                 </h1>
             </div>
-            <ul className="flex items-center gap-10">
-                <li>Marketplace</li>
-                <li>Rankings</li>
-                <li>Auction</li>
+            <ul className="flex items-center gap-15">
+                <li>
+                    <a href="">Marketplace</a>
+                </li>
+                <li>
+                    <a href="">Rankings</a>
+                </li>
+                <li>
+                    <a href="">Auction</a>
+                </li>
                 <button className="base-button p-4  flex items-center">
                     <i className="fa-solid fa-wallet mr-3"></i>Connect Wallet
                 </button>
