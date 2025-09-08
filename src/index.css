@@ -99,6 +99,8 @@
 
 
 
+
+
 @layer components {
   .base-button {
     @apply bg-blue-500 text-white p-3 rounded-2xl custom-transition;
@@ -122,5 +124,10 @@
     background: #858584;
     pointer-events: none;
     margin: 30px auto;
+  }
+
+  .custom-background-color {
+    background: #14adff;
+    background: linear-gradient(180deg, rgba(20, 173, 255, 0) 22%, rgba(20, 173, 255, 1) 95%);
   }
 }

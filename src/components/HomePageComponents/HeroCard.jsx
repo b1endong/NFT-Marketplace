@@ -1,11 +1,21 @@
 import * as THREE from "three";
 import {useRef, useEffect, useState} from "react";
+import {OrbitControls} from "three/addons/controls/OrbitControls.js";
 import {Raycaster} from "three";
 
 export default function HeroCard() {
     const canvasRef = useRef(null);
     const containerRef = useRef(null);
+    const axisHelper = new THREE.AxesHelper(5);
     const [dimensions, setDimensions] = useState({width: 0, height: 0});
+    const materials = [
+        new THREE.MeshBasicMaterial({color: "red"}), // right
+        new THREE.MeshBasicMaterial({color: "green"}), // left
+        new THREE.MeshBasicMaterial({color: "blue"}), // top
+        new THREE.MeshBasicMaterial({color: "yellow"}), // bottom
+        new THREE.MeshBasicMaterial({color: "cyan"}), // front
+        new THREE.MeshBasicMaterial({color: "purple"}), // back
+    ];
 
     useEffect(() => {
         const updateDimensions = () => {
@@ -48,16 +58,23 @@ export default function HeroCard() {
         const renderer = new THREE.WebGLRenderer({canvas, antialias: true});
         renderer.setSize(dimensions.width, dimensions.height);
         renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
-
+        scene.add(axisHelper);
         //Initialize object
         const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
-        const cubeMaterial = new THREE.MeshBasicMaterial({color: 0x00ff00});
-        const cubeMesh = new THREE.Mesh(cubeGeometry, cubeMaterial);
+        const cubeMaterials = [
+            new THREE.MeshBasicMaterial({color: "red"}), // right
+            new THREE.MeshBasicMaterial({color: "green"}), // left
+            new THREE.MeshBasicMaterial({color: "blue"}), // top
+            new THREE.MeshBasicMaterial({color: "yellow"}), // bottom
+            new THREE.MeshBasicMaterial({color: "cyan"}), // front
+            new THREE.MeshBasicMaterial({color: "purple"}), // back
+        ];
+        const cubeMesh = new THREE.Mesh(cubeGeometry, cubeMaterials);
         cubeMesh.scale.setScalar(2);
         cubeMesh.rotation.y = Math.PI;
         scene.add(cubeMesh);
         scene.background = new THREE.Color(0x2b2b2b);
-
+        //const controls = new OrbitControls(camera, canvas);
         //Raycaster
         const pointer = new THREE.Vector2();
 
@@ -90,11 +107,12 @@ export default function HeroCard() {
             raycaster.setFromCamera(pointer, camera);
             if (Math.abs(pointer.x) < 0.97 && Math.abs(pointer.y) < 0.97) {
                 const target = raycaster.ray.origin.add(
-                    raycaster.ray.direction.multiplyScalar(10)
+                    raycaster.ray.direction.multiplyScalar(20)
                 );
                 const temp = new THREE.Object3D();
                 temp.position.copy(cubeMesh.position);
                 temp.lookAt(target);
+
                 cubeMesh.quaternion.slerp(temp.quaternion, 0.1);
             } else {
                 cubeMesh.quaternion.slerp(defaultQuaternion, 0.05);

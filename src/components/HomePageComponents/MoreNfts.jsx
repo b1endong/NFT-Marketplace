@@ -15,28 +15,31 @@ export default function MoreNfts() {
             </div>
             <div className="flex-center-between gap-6 overflow-x-auto mt-15 scrollbar-hide">
                 <div className="flex-shrink-0">
-                    <NftCard />
+                    <NftCard type="homePage" />
                 </div>
                 <div className="flex-shrink-0">
-                    <NftCard />
+                    <NftCard type="homePage" />
                 </div>
                 <div className="flex-shrink-0">
-                    <NftCard />
+                    <NftCard type="homePage" />
                 </div>
                 <div className="flex-shrink-0">
-                    <NftCard />
+                    <NftCard type="homePage" />
                 </div>
                 <div className="flex-shrink-0">
-                    <NftCard />
+                    <NftCard type="homePage" />
                 </div>
                 <div className="flex-shrink-0">
-                    <NftCard />
+                    <NftCard type="homePage" />
                 </div>
                 <div className="flex-shrink-0">
-                    <NftCard />
+                    <NftCard type="homePage" />
                 </div>
                 <div className="flex-shrink-0">
-                    <NftCard />
+                    <NftCard type="homePage" />
+                </div>
+                <div className="flex-shrink-0">
+                    <NftCard type="homePage" />
                 </div>
             </div>
         </div>
