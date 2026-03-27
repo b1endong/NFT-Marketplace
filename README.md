@@ -34,21 +34,3 @@ This project is a decentralized Non-Fungible Token (NFT) marketplace built on Et
 * **Framework:** React.js + Vite
 * **Web3 Integration:** Ethers.js / Web3.js
 * **Storage:** IPFS (InterPlanetary File System)
-
----
-
-## 🚀 Getting Started
-
-Follow these steps to set up the project locally on your machine.
-
-### Prerequisites
-* [Node.js](https://nodejs.org/) (v16+)
-* [Git](https://git-scm.com/)
-* A Web3 Wallet extension (e.g., MetaMask)
-
-### Installation
-
-**1. Clone the repository:**
-```bash
-git clone [https://github.com/b1endong/NFT-Marketplace.git](https://github.com/b1endong/NFT-Marketplace.git)
-cd NFT-Marketplace
