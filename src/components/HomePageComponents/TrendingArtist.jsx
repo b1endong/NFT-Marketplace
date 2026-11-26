@@ -1,24 +1,27 @@
+import {Link} from "react-router-dom";
 import Heading from "./Heading";
 import Artist from "./Artist";
-import {testArtists} from "../../testData/Test";
+import {useRankings} from "../../hooks/useRankings";
+import {useMarket} from "../../context/MarketContext";
 
 export default function TrendingArtist() {
+    const {creators} = useRankings();
+    const {loading} = useMarket();
+    if (!loading && creators.length === 0) return null;
+
     return (
         <div className="py-20">
-            <div className="flex-center-between">
-                <Heading
-                    title="Trending Artists"
-                    subtitle="Check out the most popular NFT artists right now."
-                />
-                <button className="base-button bg-transparent border-3 font-normal border-blue-500">
+            <div className="flex-center-between flex-wrap gap-4">
+                <Heading title="Top Creators" subtitle="Checkout top rated creators on the KSEA Marketplace." />
+                <Link to="/rankings" className="base-button bg-transparent border-3 font-normal border-blue-500 px-6">
                     <i className="fa-solid fa-ranking-star mr-3 text-blue-500"></i>
-                    View Ranking
-                </button>
+                    View Rankings
+                </Link>
             </div>
-            <div className="grid grid-cols-4 grid-rows-3 gap-8 mt-15">
-                {testArtists.map((artist) => {
-                    return <Artist key={artist.rank} {...artist} />;
-                })}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-15">
+                {loading
+                    ? Array.from({length: 4}, (_, i) => <div key={i} className="h-64 bg-[#3B3B3B] rounded-2xl animate-pulse" />)
+                    : creators.slice(0, 12).map((artist) => <Artist key={artist.address} {...artist} />)}
             </div>
         </div>
     );

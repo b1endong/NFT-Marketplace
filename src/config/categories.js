@@ -1,4 +1,4 @@
-const Categories = [
+const CATEGORIES = [
     {
         id: 1,
         name: "Art",
@@ -49,4 +49,4 @@ const Categories = [
     },
 ];
 
-export default Categories;
+export default CATEGORIES;

@@ -10,19 +10,19 @@ export default function HowItWork() {
                 title="How It Works"
                 subtitle="Find Out How To Get Started"
             />
-            <div className="mt-15 flex-center-between gap-8">
+            <div className="mt-15 grid md:grid-cols-3 gap-8">
                 <Work
                     imgSrc={Icon}
                     title={"Setup Your Wallet"}
                     description={
-                        "Set up your wallet of choice. Connect it to the Animarket by clicking the wallet icon in the top right corner."
+                        "Set up your wallet of choice. Connect MetaMask to the KSEA Marketplace using the Connect Wallet button in the top right corner."
                     }
                 />
                 <Work
                     imgSrc={Icon2}
-                    title={"Create Collection"}
+                    title={"Create Your NFT"}
                     description={
-                        "Upload your work and setup your collection. Add a description, social links and floor price."
+                        "Upload your artwork, add a name, description, category and properties, then mint it on-chain."
                     }
                 />
                 <Work
