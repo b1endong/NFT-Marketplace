@@ -14,8 +14,6 @@
 
 This project is a decentralized Non-Fungible Token (NFT) marketplace built on Ethereum. It provides a trustless environment for users to create (mint), list, buy, and bid on digital assets. The platform leverages optimized smart contracts and decentralized storage to ensure absolute true ownership and immutability.
 
-*Note: The frontend is currently under active development.*
-
 ## ✨ Key Features
 
 * **Optimized ERC-721 Smart Contracts:** Secure and gas-efficient implementation of the ERC-721 non-fungible token standard.
@@ -109,67 +107,6 @@ flowchart LR
 ├── docs/                 screenshots used in this README
 └── vercel.json           sends every route to index.html
 ```
-
-## Run locally
-
-You need Node.js 20.19+ (or 22.12+), the MetaMask extension, and some Sepolia ETH from a faucet.
-
-```bash
-git clone https://github.com/b1endong/NFT-Marketplace.git
-cd NFT-Marketplace
-npm install
-cp .env.example .env   # optional, see below
-npm run dev
-```
-
-Then open http://localhost:5173. Other scripts: `npm run build`, `npm run preview`, `npm run lint`.
-
-### Environment variables
-
-All variables are optional; the app runs on the defaults.
-
-| Variable | Purpose | Default |
-|---|---|---|
-| `VITE_PINATA_JWT` | Upload images and metadata to IPFS from the Create page | Not set: paste an image URL, metadata stored on-chain |
-| `VITE_IPFS_GATEWAY` | Preferred IPFS gateway, e.g. `https://<name>.mypinata.cloud/ipfs/` | Public gateways |
-| `VITE_RPC_URL` | Sepolia RPC used for reads | `https://ethereum-sepolia-rpc.publicnode.com` |
-| `VITE_NFT_ADDRESS`, `VITE_MARKETPLACE_ADDRESS`, `VITE_AUCTION_ADDRESS` | Use your own deployment | Addresses in the table above |
-| `VITE_NFT_DEPLOY_BLOCK` | First block to scan for mint events | `9096185` |
-
-> [!WARNING]
-> Vite builds `VITE_*` variables into the JavaScript sent to the browser, so anyone can read them. Give the Pinata key only the `pinFileToIPFS` and `pinJSONToIPFS` permissions.
-
-> [!NOTE]
-> Alchemy's free tier limits `eth_getLogs` to 10 blocks per request, which breaks the creator lookup. Keep the default RPC or use a provider that allows ranges of 50,000 blocks.
-
-## Deploy to Vercel
-
-1. Import the repository on Vercel. The Vite preset works as is (build command `npm run build`, output directory `dist`).
-2. Add any environment variables under **Project Settings → Environment Variables**, then redeploy. Vite reads them at build time, so a change only takes effect after a new build.
-3. [`vercel.json`](vercel.json) rewrites every path to `index.html`, so routes such as `/marketplace` or `/nft/...` load correctly when opened directly or refreshed.
-
-## Smart contracts
-
-```bash
-cd contract
-git submodule update --init --recursive   # OpenZeppelin and Chainlink libraries
-forge build
-forge test
-```
-
-Deploy with the `makefile`:
-
-```bash
-# Local Anvil node (http://localhost:8545)
-make deployNFT
-make deployMarketplace
-
-# Sepolia: set SEPOLIA_RPC_URL, ETHERSCAN_API_KEY and ACCOUNT (a cast wallet name) in contract/.env
-make deployNFT ARGS="--network sepolia"
-make deployMarketplace ARGS="--network sepolia"
-```
-
-`deployMarketplace` deploys both the marketplace and the auction module. After a new deployment, put the new addresses (and the NFT deploy block) in the `VITE_*` variables.
 
 ## Known limitations
 
