@@ -1,8 +1,9 @@
 import SubscribeButton from "../SubscribeButton";
+import Reveal from "../common/Reveal";
 
 export default function SubcribeWidget() {
     return (
-        <div className="py-20">
+        <Reveal className="py-20">
             <div className="bg-[#3B3B3B] flex-center flex-col lg:flex-row gap-10 lg:gap-20 rounded-2xl py-10 lg:py-15 px-6 lg:px-12">
                 <img src="/Subscribe Photo.svg" alt="Image 1" />
                 <div className="flex-center flex-col gap-10">
@@ -20,6 +21,6 @@ export default function SubcribeWidget() {
                     </div>
                 </div>
             </div>
-        </div>
+        </Reveal>
     );
 }

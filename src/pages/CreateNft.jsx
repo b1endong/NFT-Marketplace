@@ -171,8 +171,8 @@ export default function CreateNft() {
                             <NftImage src={preview} alt="Preview" className="w-full h-full" />
                         ) : (
                             <div className="w-full h-full flex-center flex-col gap-3 text-[#858584]">
-                                <i className="fa-regular fa-image text-6xl"></i>
-                                <p>Image preview</p>
+                                <i className="fa-regular fa-image text-6xl !text-white/25"></i>
+                                <p className="!text-white/40">Image preview</p>
                             </div>
                         )}
                     </div>

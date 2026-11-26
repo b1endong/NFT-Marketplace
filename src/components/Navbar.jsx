@@ -60,10 +60,10 @@ function WalletButton() {
             >
                 <Avatar address={account} />
                 <span className="font-mono">{shortAddress(account)}</span>
-                <i className="fa-solid fa-chevron-down text-xs"></i>
+                <i className={`fa-solid fa-chevron-down text-xs transition-transform duration-300 ${open ? "rotate-180" : ""}`}></i>
             </button>
             {open && (
-                <div className="absolute right-0 mt-2 w-56 bg-[#3B3B3B] border border-[#555] rounded-2xl overflow-hidden shadow-2xl z-40">
+                <div className="absolute right-0 mt-2 w-56 bg-[#3B3B3B]/95 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden shadow-2xl z-40 animate-scale-in origin-top-right">
                     <Link
                         to={`/profile/${account}`}
                         className="block px-5 py-3 hover:bg-[#4a4a4a]"
@@ -101,7 +101,15 @@ function WalletButton() {
 
 export default function Navbar() {
     const [menuOpen, setMenuOpen] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
     const location = useLocation();
+
+    useEffect(() => {
+        const onScroll = () => setScrolled(window.scrollY > 8);
+        onScroll();
+        window.addEventListener("scroll", onScroll, {passive: true});
+        return () => window.removeEventListener("scroll", onScroll);
+    }, []);
 
     // đóng menu mobile khi chuyển trang
     const [lastPath, setLastPath] = useState(location.pathname);
@@ -111,13 +119,19 @@ export default function Navbar() {
     }
 
     const linkClass = ({isActive}) =>
-        `custom-transition hover:text-blue-400 ${isActive ? "!text-blue-400 font-bold" : ""}`;
+        `nav-link custom-transition hover:!text-white ${isActive ? "active !text-white font-semibold" : "!text-[#CCCCCC]"}`;
 
     return (
-        <nav className="sticky top-0 z-30 bg-[#2B2B2B]/95 backdrop-blur border-b border-[#3B3B3B]">
-            <div className="flex-center-between py-4 px-4 sm:px-8 lg:px-12 gap-4">
-                <Link to="/" className="flex items-center shrink-0">
-                    <i className="fa-solid fa-shop mr-3 text-blue-400"></i>
+        <nav
+            className={`sticky top-0 z-30 border-b transition-all duration-300 ${
+                scrolled || menuOpen
+                    ? "bg-[#2B2B2B]/80 backdrop-blur-md border-white/10 shadow-[0_8px_30px_-12px_rgba(0,0,0,0.6)]"
+                    : "bg-transparent border-transparent"
+            }`}
+        >
+            <div className={`flex-center-between px-4 sm:px-8 lg:px-12 gap-4 transition-all duration-300 ${scrolled ? "py-3" : "py-5"}`}>
+                <Link to="/" className="group flex items-center shrink-0">
+                    <i className="fa-solid fa-shop mr-3 text-blue-400 transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-110"></i>
                     <h1 className="space-mono-bold text-blue-400 text-xl sm:text-2xl">KSEA Marketplace</h1>
                 </Link>
                 <ul className="hidden lg:flex items-center gap-10">
@@ -135,7 +149,7 @@ export default function Navbar() {
                 </button>
             </div>
             {menuOpen && (
-                <ul className="lg:hidden flex flex-col gap-5 px-4 sm:px-8 pb-6">
+                <ul className="lg:hidden flex flex-col gap-5 px-4 sm:px-8 pb-6 animate-fade-in">
                     {LINKS.map((l) => (
                         <li key={l.to}>
                             <NavLink to={l.to} className={linkClass}>

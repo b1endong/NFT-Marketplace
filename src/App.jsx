@@ -15,18 +15,19 @@ import NetworkBanner from "./components/NetworkBanner";
 function ScrollToTop() {
     const {pathname} = useLocation();
     useEffect(() => {
-        window.scrollTo(0, 0);
+        window.scrollTo({top: 0, behavior: "instant"});
     }, [pathname]);
     return null;
 }
 
 export default function App() {
+    const {pathname} = useLocation();
     return (
         <div className="min-h-screen flex flex-col">
             <ScrollToTop />
             <Navbar />
             <NetworkBanner />
-            <main className="flex-1">
+            <main key={pathname} className="flex-1 page-enter">
                 <Routes>
                     <Route path="/" element={<HomePage />} />
                     <Route path="/marketplace" element={<Marketplace />} />

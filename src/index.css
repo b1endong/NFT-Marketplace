@@ -5,6 +5,9 @@
   --unactive-btn-text: #6a6a6a;
   --active-btn-text: white;
   --active-btn: black;
+  --ease-out: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --brand-blue: #3ab0f0;
+  --brand-purple: #b343d9;
 }
 
 .work-sans-custom {
@@ -38,15 +41,85 @@
   font-style: italic;
 }
 
+/* ---------- Keyframes ---------- */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+@keyframes shine {
+  from {
+    transform: translateX(-120%) skewX(-20deg);
+  }
+  to {
+    transform: translateX(220%) skewX(-20deg);
+  }
+}
+
 @layer base {
   * {
     box-sizing: border-box;
     color: white;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   button {
     cursor: pointer;
     outline: none;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
   }
 
   a {
@@ -56,10 +129,44 @@
 
   body {
     font-family: "Work Sans", sans-serif;
-    background-color: #2B2B2B;
+    background-color: #2b2b2b;
+    /* ánh sáng rất nhẹ ở đầu trang */
+    background-image:
+      radial-gradient(1100px 520px at 85% -8%, rgba(58, 176, 240, 0.07), transparent 60%),
+      radial-gradient(900px 480px at -10% 6%, rgba(179, 67, 217, 0.05), transparent 60%);
+    background-repeat: no-repeat;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: rgba(58, 176, 240, 0.35);
+  }
+
+  :focus-visible {
+    outline: 2px solid rgba(58, 176, 240, 0.7);
+    outline-offset: 2px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #242424;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #4a4a4a;
+    border-radius: 999px;
+    border: 2px solid #242424;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #5c5c5c;
   }
 }
-
 
 @layer utilities {
   .flex-center {
@@ -83,10 +190,40 @@
     display: none;
   }
 
+  .text-gradient {
+    background: linear-gradient(120deg, var(--brand-blue), var(--brand-purple));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.25s ease both;
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.3s var(--ease-out) both;
+  }
+
+  .animate-slide-in {
+    animation: slide-in-right 0.35s var(--ease-out) both;
+  }
+
+  .page-enter {
+    animation: fade-up 0.45s var(--ease-out) both;
+  }
 }
 
 @utility max-w-calc {
   max-width: calc(100% - 230px);
+
+  @media (max-width: 1024px) {
+    max-width: calc(100% - 48px);
+  }
+
+  @media (max-width: 640px) {
+    max-width: calc(100% - 32px);
+  }
 }
 
 @utility custom-gradient {
@@ -97,10 +234,6 @@
   @apply transition duration-300 ease-in-out;
 }
 
-
-
-
-
 @layer components {
   .base-button {
     @apply bg-blue-500 text-white p-3 rounded-2xl custom-transition;
@@ -108,10 +241,38 @@
 
   .gradient-button {
     @apply custom-gradient p-3 rounded-2xl custom-transition;
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
   }
 
-  .base-button:hover {
-    @apply opacity-80;
+  /* vệt sáng lướt qua một lần khi hover */
+  .gradient-button::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: 40%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.22), transparent);
+    transform: translateX(-120%) skewX(-20deg);
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  .gradient-button:hover:not(:disabled)::after {
+    animation: shine 0.8s ease;
+  }
+
+  .gradient-button:hover:not(:disabled) {
+    box-shadow: 0 10px 30px -10px rgba(120, 110, 240, 0.55);
+  }
+
+  .base-button:hover:not(:disabled) {
+    @apply opacity-85;
+  }
+
+  .base-button:active:not(:disabled),
+  .gradient-button:active:not(:disabled) {
+    transform: scale(0.98);
   }
 
   .footer-content::after {
@@ -129,5 +290,127 @@
   .custom-background-color {
     background: #14adff;
     background: linear-gradient(180deg, rgba(20, 173, 255, 0) 22%, rgba(20, 173, 255, 1) 95%);
+  }
+
+  /* Link điều hướng có gạch chân trượt */
+  .nav-link {
+    position: relative;
+    padding: 4px 0;
+  }
+
+  .nav-link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -2px;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--brand-blue), var(--brand-purple));
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s var(--ease-out);
+  }
+
+  .nav-link:hover::after,
+  .nav-link.active::after {
+    transform: scaleX(1);
+  }
+
+  /* Hiện dần khi cuộn tới */
+  .reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition:
+      opacity 0.7s var(--ease-out),
+      transform 0.7s var(--ease-out);
+    transition-delay: var(--reveal-delay, 0ms);
+  }
+
+  .reveal.is-visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Card nghiêng 3D nhẹ theo con trỏ (xem hook useTilt) */
+  .tilt-card {
+    position: relative;
+    transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(var(--lift, 0px));
+    transition:
+      transform 0.45s var(--ease-out),
+      box-shadow 0.45s var(--ease-out);
+    will-change: transform;
+  }
+
+  .tilt-card.is-tilting {
+    transition:
+      transform 0.12s linear,
+      box-shadow 0.45s var(--ease-out);
+  }
+
+  .tilt-card:hover {
+    --lift: -6px;
+    box-shadow:
+      0 24px 48px -20px rgba(0, 0, 0, 0.7),
+      0 0 0 1px rgba(58, 176, 240, 0.25);
+  }
+
+  .tilt-glare {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(circle at var(--gx, 50%) var(--gy, 50%), rgba(255, 255, 255, 0.1), transparent 55%);
+    opacity: 0;
+    transition: opacity 0.35s ease;
+    z-index: 2;
+  }
+
+  .tilt-card:hover .tilt-glare {
+    opacity: 1;
+  }
+
+  /* Skeleton có vệt sáng chạy */
+  .skeleton {
+    background-image: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.06) 50%, transparent 100%);
+    background-size: 200% 100%;
+    background-repeat: no-repeat;
+    animation: shimmer 1.6s linear infinite;
+  }
+
+  /* Viền gradient mảnh cho khung nổi bật */
+  .gradient-border {
+    position: relative;
+  }
+
+  .gradient-border::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(58, 176, 240, 0.6), rgba(179, 67, 217, 0.6));
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,
+      linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+}
+
+/* Người dùng bật "giảm chuyển động" trong hệ điều hành -> tắt hiệu ứng */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .reveal {
+    opacity: 1;
+    transform: none;
   }
 }

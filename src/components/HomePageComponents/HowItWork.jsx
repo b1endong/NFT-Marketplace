@@ -12,6 +12,8 @@ export default function HowItWork() {
             />
             <div className="mt-15 grid md:grid-cols-3 gap-8">
                 <Work
+                    step={1}
+                    delay={0}
                     imgSrc={Icon}
                     title={"Setup Your Wallet"}
                     description={
@@ -19,6 +21,8 @@ export default function HowItWork() {
                     }
                 />
                 <Work
+                    step={2}
+                    delay={120}
                     imgSrc={Icon2}
                     title={"Create Your NFT"}
                     description={
@@ -26,6 +30,8 @@ export default function HowItWork() {
                     }
                 />
                 <Work
+                    step={3}
+                    delay={240}
                     imgSrc={Icon3}
                     title={"Start Earning"}
                     description={

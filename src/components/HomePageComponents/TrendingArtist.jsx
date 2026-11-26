@@ -1,6 +1,7 @@
 import {Link} from "react-router-dom";
 import Heading from "./Heading";
 import Artist from "./Artist";
+import Reveal from "../common/Reveal";
 import {useRankings} from "../../hooks/useRankings";
 import {useMarket} from "../../context/MarketContext";
 
@@ -18,10 +19,14 @@ export default function TrendingArtist() {
                     View Rankings
                 </Link>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-15">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-12">
                 {loading
-                    ? Array.from({length: 4}, (_, i) => <div key={i} className="h-64 bg-[#3B3B3B] rounded-2xl animate-pulse" />)
-                    : creators.slice(0, 12).map((artist) => <Artist key={artist.address} {...artist} />)}
+                    ? Array.from({length: 4}, (_, i) => <div key={i} className="h-64 bg-[#3B3B3B] rounded-2xl skeleton" />)
+                    : creators.slice(0, 12).map((artist, i) => (
+                          <Reveal key={artist.address} delay={(i % 4) * 80}>
+                              <Artist {...artist} />
+                          </Reveal>
+                      ))}
             </div>
         </div>
     );

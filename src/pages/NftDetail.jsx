@@ -10,13 +10,31 @@ import {inputClass} from "../lib/styles";
 import {useMarket} from "../context/MarketContext";
 import {useWallet} from "../context/WalletContext";
 import {useTransaction} from "../hooks/useTransaction";
+import {useTilt} from "../hooks/useEffects";
 import {getContracts} from "../lib/chain";
 import {resolveUri} from "../lib/ipfs";
 import {explorerAddress, formatEth, sameAddress, shortAddress, tokenKey, ZERO_ADDRESS} from "../lib/format";
 import {ADDRESSES, CHAIN} from "../config/contracts";
 
 function Panel({children, className = ""}) {
-    return <div className={`bg-[#3B3B3B] rounded-2xl p-6 ${className}`}>{children}</div>;
+    return <div className={`bg-[#3B3B3B] rounded-2xl p-6 ring-1 ring-white/5 ${className}`}>{children}</div>;
+}
+
+// Ảnh lớn nghiêng nhẹ theo con trỏ
+function TiltImage({nft}) {
+    const ref = useTilt(4);
+    return (
+        <div ref={ref} className="tilt-card rounded-2xl overflow-hidden ring-1 ring-white/10 shadow-2xl">
+            <span className="tilt-glare" />
+            <NftImage
+                src={nft.image}
+                alt={nft.name}
+                loading={nft.metaLoading}
+                seed={nft.key}
+                className="w-full aspect-square"
+            />
+        </div>
+    );
 }
 
 function Stat({label, children}) {
@@ -311,11 +329,11 @@ export default function NftDetail() {
     if (loading) {
         return (
             <div className="max-w-calc m-auto py-16 grid lg:grid-cols-2 gap-10">
-                <div className="aspect-square bg-[#3B3B3B] rounded-2xl animate-pulse" />
+                <div className="aspect-square bg-[#3B3B3B] rounded-2xl skeleton" />
                 <div className="flex flex-col gap-4">
-                    <div className="h-12 w-2/3 bg-[#3B3B3B] rounded animate-pulse" />
-                    <div className="h-6 w-1/3 bg-[#3B3B3B] rounded animate-pulse" />
-                    <div className="h-40 bg-[#3B3B3B] rounded-2xl animate-pulse mt-6" />
+                    <div className="h-12 w-2/3 bg-[#3B3B3B] rounded skeleton" />
+                    <div className="h-6 w-1/3 bg-[#3B3B3B] rounded skeleton" />
+                    <div className="h-40 bg-[#3B3B3B] rounded-2xl skeleton mt-6" />
                 </div>
             </div>
         );
@@ -344,12 +362,7 @@ export default function NftDetail() {
         <div className="max-w-calc m-auto py-12 lg:py-16">
             <div className="grid lg:grid-cols-2 gap-10 items-start">
                 <div className="lg:sticky lg:top-28">
-                    <NftImage
-                        src={nft.image}
-                        alt={nft.name}
-                        loading={nft.metaLoading}
-                        className="w-full aspect-square rounded-2xl"
-                    />
+                    <TiltImage nft={nft} />
                 </div>
 
                 <div className="flex flex-col gap-6">

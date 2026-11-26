@@ -1,93 +1,63 @@
-import * as THREE from "three";
 import {useEffect, useRef, useState} from "react";
+import {createHoloCard} from "../../three/holoCard";
+import NftImage from "../common/NftImage";
 
-export default function HeroCard() {
-    const canvasRef = useRef(null);
+/**
+ * Thẻ bài NFT 3D: nghiêng theo con trỏ, click để lật, tự quay khi `card` đổi.
+ * card: {key, name, image, creator, status, priceLabel, priceValue, tokenId}
+ */
+export default function HeroCard({card, onHoverChange}) {
     const containerRef = useRef(null);
-    const [dimensions, setDimensions] = useState({width: 0, height: 0});
+    const canvasRef = useRef(null);
+    const apiRef = useRef(null);
+    const hoverRef = useRef(onHoverChange);
+    const [webglFailed, setWebglFailed] = useState(false);
 
     useEffect(() => {
-        const container = containerRef.current;
-        if (!container) return;
-        const observer = new ResizeObserver(([entry]) => {
-            const {width, height} = entry.contentRect;
-            setDimensions({width: Math.round(width), height: Math.round(height)});
-        });
-        observer.observe(container);
-        return () => observer.disconnect();
+        hoverRef.current = onHoverChange;
+    });
+
+    useEffect(() => {
+        try {
+            apiRef.current = createHoloCard(containerRef.current, canvasRef.current, {
+                onHoverChange: (v) => hoverRef.current?.(v),
+            });
+        } catch (err) {
+            console.warn("WebGL is not available, showing a static card", err);
+            setWebglFailed(true);
+        }
+        return () => {
+            apiRef.current?.dispose();
+            apiRef.current = null;
+        };
     }, []);
 
     useEffect(() => {
-        if (!dimensions.width || !dimensions.height) return;
+        apiRef.current?.setCard(card);
+    }, [card]);
 
-        const canvas = canvasRef.current;
-        const raycaster = new THREE.Raycaster();
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, dimensions.width / dimensions.height, 0.1, 1000);
-        camera.position.z = 5;
-        let renderer;
-        try {
-            renderer = new THREE.WebGLRenderer({canvas, antialias: true});
-        } catch (err) {
-            console.warn("WebGL is not available, skipping 3D hero", err);
-            return;
-        }
-        renderer.setSize(dimensions.width, dimensions.height);
-        renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
-
-        const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
-        const cubeMaterials = ["red", "green", "blue", "yellow", "cyan", "purple"].map(
-            (color) => new THREE.MeshBasicMaterial({color})
+    if (webglFailed) {
+        return (
+            <div className="w-full h-full flex-center">
+                <div className="h-[85%] aspect-[5/7] rounded-3xl bg-[#1d1d22] border border-white/10 p-4 flex flex-col gap-3 shadow-2xl">
+                    <NftImage src={card?.image} alt={card?.name} className="w-full aspect-square rounded-2xl" />
+                    <p className="font-bold text-xl truncate">{card?.name}</p>
+                    <p className="font-mono text-sm text-[#CCCCCC]">
+                        {card?.priceLabel}: {card?.priceValue}
+                    </p>
+                </div>
+            </div>
         );
-        const cubeMesh = new THREE.Mesh(cubeGeometry, cubeMaterials);
-        cubeMesh.scale.setScalar(2);
-        cubeMesh.rotation.y = Math.PI;
-        scene.add(cubeMesh);
-        scene.background = new THREE.Color(0x2b2b2b);
-
-        const pointer = new THREE.Vector2(2, 2); // ngoài canvas cho tới khi rê chuột
-        const handleMouseMove = (event) => {
-            const rect = canvas.getBoundingClientRect();
-            pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-            pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-        };
-        const handleMouseLeave = () => pointer.set(2, 2);
-        canvas.addEventListener("mousemove", handleMouseMove);
-        canvas.addEventListener("mouseleave", handleMouseLeave);
-
-        const defaultQuaternion = cubeMesh.quaternion.clone();
-        const temp = new THREE.Object3D();
-        let frameId;
-
-        const animate = () => {
-            frameId = window.requestAnimationFrame(animate);
-            raycaster.setFromCamera(pointer, camera);
-            if (Math.abs(pointer.x) < 0.97 && Math.abs(pointer.y) < 0.97) {
-                const target = raycaster.ray.origin.add(raycaster.ray.direction.multiplyScalar(20));
-                temp.position.copy(cubeMesh.position);
-                temp.lookAt(target);
-                cubeMesh.quaternion.slerp(temp.quaternion, 0.1);
-            } else {
-                cubeMesh.quaternion.slerp(defaultQuaternion, 0.05);
-            }
-            renderer.render(scene, camera);
-        };
-        animate();
-
-        // Dọn dẹp khi đổi kích thước / unmount để không chạy nhiều vòng render song song
-        return () => {
-            window.cancelAnimationFrame(frameId);
-            canvas.removeEventListener("mousemove", handleMouseMove);
-            canvas.removeEventListener("mouseleave", handleMouseLeave);
-            cubeGeometry.dispose();
-            cubeMaterials.forEach((m) => m.dispose());
-            renderer.dispose();
-        };
-    }, [dimensions]);
+    }
 
     return (
-        <div ref={containerRef} className="w-full h-full min-h-72 rounded-2xl overflow-hidden">
-            <canvas ref={canvasRef} className="block" />
+        <div ref={containerRef} className="w-full h-full min-h-72 relative">
+            <canvas
+                ref={canvasRef}
+                className="block w-full h-full cursor-pointer"
+                aria-label={card ? `3D card of ${card.name}. Click to flip.` : "3D card"}
+                role="img"
+            />
         </div>
     );
 }

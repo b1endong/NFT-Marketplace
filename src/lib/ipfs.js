@@ -5,7 +5,6 @@ export const GATEWAYS = [
     env.VITE_IPFS_GATEWAY,
     "https://gateway.pinata.cloud/ipfs/",
     "https://ipfs.filebase.io/ipfs/",
-    "https://dweb.link/ipfs/",
 ]
     .filter(Boolean)
     .map((g) => g.replace(/\/?$/, "/"));
@@ -47,14 +46,25 @@ function encodeBase64Utf8(text) {
 
 const metadataCache = new Map();
 
-async function fetchWithTimeout(url, ms) {
+async function fetchWithTimeout(url, ms, signal) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), ms);
+    const onAbort = () => controller.abort();
+    signal?.addEventListener("abort", onAbort);
     try {
         return await fetch(url, {signal: controller.signal});
     } finally {
         clearTimeout(timer);
+        signal?.removeEventListener("abort", onAbort);
     }
+}
+
+async function readMetadataResponse(res, tokenURI) {
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const type = res.headers.get("content-type") || "";
+    // tokenURI trỏ thẳng tới một ảnh
+    if (type.startsWith("image/")) return {image: tokenURI};
+    return res.json();
 }
 
 // Đọc metadata JSON từ tokenURI (hỗ trợ data:, ipfs://, http(s)://).
@@ -71,20 +81,20 @@ export function fetchMetadata(tokenURI) {
                     : decodeURIComponent(body);
                 return JSON.parse(text);
             }
-            const attempts = isIpfsUri(tokenURI) ? GATEWAYS.length : 1;
-            for (let i = 0; i < attempts; i++) {
-                try {
-                    const res = await fetchWithTimeout(resolveUri(tokenURI, i), 12000);
-                    if (!res.ok) continue;
-                    const type = res.headers.get("content-type") || "";
-                    // tokenURI trỏ thẳng tới một ảnh
-                    if (type.startsWith("image/")) return {image: tokenURI};
-                    return await res.json();
-                } catch {
-                    /* thử gateway tiếp theo */
-                }
+            if (!isIpfsUri(tokenURI)) {
+                return await readMetadataResponse(await fetchWithTimeout(tokenURI, 12000), tokenURI);
             }
-            throw new Error("all gateways failed");
+            // Gửi tới mọi gateway cùng lúc, lấy kết quả đầu tiên, huỷ các request còn lại
+            const stop = new AbortController();
+            try {
+                return await Promise.any(
+                    GATEWAYS.map(async (_, i) =>
+                        readMetadataResponse(await fetchWithTimeout(resolveUri(tokenURI, i), 15000, stop.signal), tokenURI)
+                    )
+                );
+            } finally {
+                stop.abort();
+            }
         } catch (err) {
             console.warn("Cannot load metadata", tokenURI, err.message);
             return null;

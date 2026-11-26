@@ -1,5 +1,6 @@
 import {Link} from "react-router-dom";
 import Heading from "./Heading";
+import Reveal from "../common/Reveal";
 import NftCard, {NftCardSkeleton} from "../NftCard";
 import {useMarket} from "../../context/MarketContext";
 
@@ -15,17 +16,17 @@ export function NftRow({title, subtitle, nfts, linkTo, linkLabel = "See All", ic
                     {linkLabel}
                 </Link>
             </div>
-            <div className="flex gap-6 overflow-x-auto mt-15 pb-4 scrollbar-hide">
+            <div className="flex gap-6 overflow-x-auto mt-12 pt-3 pb-8 px-1 -mx-1 scrollbar-hide snap-x">
                 {loading
                     ? Array.from({length: 3}, (_, i) => (
                           <div key={i} className="flex-shrink-0">
                               <NftCardSkeleton type="homePage" />
                           </div>
                       ))
-                    : nfts.map((nft) => (
-                          <div key={nft.key} className="flex-shrink-0">
+                    : nfts.map((nft, i) => (
+                          <Reveal key={nft.key} className="flex-shrink-0 snap-start" delay={Math.min(i, 4) * 80}>
                               <NftCard nft={nft} type="homePage" />
-                          </div>
+                          </Reveal>
                       ))}
             </div>
         </div>

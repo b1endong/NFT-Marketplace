@@ -53,7 +53,7 @@ export function ToastProvider({children}) {
                     return (
                         <div
                             key={t.id}
-                            className="bg-[#3B3B3B] border border-[#555] rounded-2xl p-4 shadow-2xl flex gap-3 items-start"
+                            className="bg-[#3B3B3B]/95 backdrop-blur-md border border-white/10 rounded-2xl p-4 shadow-2xl flex gap-3 items-start animate-slide-in"
                         >
                             <i className={`${style.icon} ${style.color} text-xl mt-0.5`}></i>
                             <div className="flex-1 min-w-0">
